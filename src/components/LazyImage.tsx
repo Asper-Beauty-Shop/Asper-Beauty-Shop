@@ -4,6 +4,7 @@ import { ImageSkeleton } from "./ProductCardSkeleton";
 
 interface LazyImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   skeletonClassName?: string;
+  fallbackSrc?: string;
 }
 
 export const LazyImage = ({
@@ -11,6 +12,10 @@ export const LazyImage = ({
   alt,
   className,
   skeletonClassName,
+  fallbackSrc = "/placeholder.svg",
+  onLoad,
+  onError,
+  loading,
   ...props
 }: LazyImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -27,20 +32,37 @@ export const LazyImage = ({
       {!isLoaded && !isError && (
         <ImageSkeleton className={cn("absolute inset-0 w-full h-full", skeletonClassName)} />
       )}
-      
-      {/* Actual image */}
-      <img
-        src={src}
-        alt={alt}
-        className={cn(
-          "transition-opacity duration-500",
-          isLoaded ? "opacity-100" : "opacity-0",
-          className
-        )}
-        onLoad={() => setIsLoaded(true)}
-        onError={() => setIsError(true)}
-        {...props}
-      />
+
+      {/* Actual image / fallback */}
+      {isError ? (
+        <img
+          src={fallbackSrc}
+          alt={alt}
+          loading={loading ?? "lazy"}
+          className={cn("opacity-100", className)}
+          {...props}
+        />
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          loading={loading ?? "lazy"}
+          className={cn(
+            "transition-opacity duration-500",
+            isLoaded ? "opacity-100" : "opacity-0",
+            className
+          )}
+          onLoad={(e) => {
+            setIsLoaded(true);
+            onLoad?.(e);
+          }}
+          onError={(e) => {
+            setIsError(true);
+            onError?.(e);
+          }}
+          {...props}
+        />
+      )}
     </div>
   );
 };
