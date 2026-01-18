@@ -169,8 +169,11 @@ git rebase -i main
 
 **Handling rebase conflicts:**
 ```bash
-# After resolving conflicts in files
-git add .
+# After resolving conflicts in files, stage them
+# Use specific files or check with 'git status' first
+git add <resolved-files>
+
+# Continue the rebase
 git rebase --continue
 
 # Skip the current commit if needed
@@ -190,14 +193,15 @@ git fetch origin
 git rebase origin/main
 
 # 3. If conflicts occur, resolve them
-# Edit conflicting files, then:
-git add .
+# Edit conflicting files, then stage the resolved files
+git add <resolved-files>
 git rebase --continue
 
 # 4. Force push your rebased branch
 # WARNING: Force push overwrites remote history. Only use on personal feature branches!
 # Never force push to shared branches (main, develop, etc.) as it can cause data loss.
-# Use --force-with-lease instead of --force for safer pushing.
+# --force-with-lease checks that your local ref is up-to-date before forcing,
+# preventing accidental overwrites of others' work.
 git push --force-with-lease origin feature/add-filters
 ```
 
