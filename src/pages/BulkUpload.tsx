@@ -193,9 +193,9 @@ export default function BulkUpload() {
       setStep("categorize");
     } catch (error: unknown) {
       console.error("Parse error:", error);
-      const err = error as Error;
-      setParseError(err.message || "Failed to parse file");
-      toast.error(`Failed to parse file: ${err.message}`);
+      const errorMessage = error instanceof Error ? error.message : "Failed to parse file";
+      setParseError(errorMessage);
+      toast.error(`Failed to parse file: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
     }
@@ -263,9 +263,9 @@ export default function BulkUpload() {
       setStep("categorize");
     } catch (error: unknown) {
       console.error("Load error:", error);
-      const err = error as Error;
-      setParseError(err.message || "Failed to load file");
-      toast.error(`Failed to load file: ${err.message}`);
+      const errorMessage = error instanceof Error ? error.message : "Failed to load file";
+      setParseError(errorMessage);
+      toast.error(`Failed to load file: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
     }
@@ -302,10 +302,10 @@ export default function BulkUpload() {
       setStep("images");
     } catch (error: unknown) {
       console.error(error);
-      const err = error as Error;
-      if (err.message?.includes("401") || err.message?.includes("Unauthorized")) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
         toast.error("Authentication required. Please log in.");
-      } else if (err.message?.includes("403") || err.message?.includes("Forbidden")) {
+      } else if (errorMessage.includes("403") || errorMessage.includes("Forbidden")) {
         toast.error("Admin access required for bulk operations.");
       } else {
         toast.error("Failed to categorize products");
@@ -436,10 +436,10 @@ export default function BulkUpload() {
           
         } catch (error: unknown) {
           console.error(`Failed to create ${product.name}:`, error);
-          const err = error as Error;
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
           
           // Check for auth errors and stop if unauthorized
-          if (err.message?.includes("401") || err.message?.includes("403") || err.message?.includes("Unauthorized") || err.message?.includes("Forbidden")) {
+          if (errorMessage.includes("401") || errorMessage.includes("403") || errorMessage.includes("Unauthorized") || errorMessage.includes("Forbidden")) {
             toast.error("Authorization failed. Please log in as an admin.");
             setIsShopifyUploading(false);
             return;
