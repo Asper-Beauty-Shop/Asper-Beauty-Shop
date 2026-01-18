@@ -108,13 +108,9 @@ export const CODCheckoutForm = ({ onSuccess, onCancel }: CODCheckoutFormProps) =
         imageUrl: item.product.node.images?.edges?.[0]?.node?.url || null,
       }));
 
-      // Generate a temporary order number for insert (will be replaced by trigger)
-      const tempOrderNumber = 'ASP-' + Date.now().toString().slice(-8);
-
       const { data, error } = await supabase
         .from('cod_orders')
         .insert({
-          order_number: tempOrderNumber,
           customer_name: formData.customerName.trim(),
           customer_phone: formData.customerPhone.trim(),
           customer_email: formData.customerEmail.trim() || null,
