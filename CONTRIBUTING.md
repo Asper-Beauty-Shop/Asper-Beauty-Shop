@@ -194,7 +194,10 @@ git rebase origin/main
 git add .
 git rebase --continue
 
-# 4. Force push (only for feature branches, never for shared branches!)
+# 4. Force push your rebased branch
+# WARNING: Force push overwrites remote history. Only use on personal feature branches!
+# Never force push to shared branches (main, develop, etc.) as it can cause data loss.
+# Use --force-with-lease instead of --force for safer pushing.
 git push --force-with-lease origin feature/add-filters
 ```
 
