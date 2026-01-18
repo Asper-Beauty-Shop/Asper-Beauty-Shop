@@ -288,9 +288,9 @@ class ImageGenerationQueue {
       return { success: false, error: "No image URL returned" };
     } catch (err: unknown) {
       console.error(`Exception processing ${item.name}:`, err);
-      const error = err as Error;
-      const isRateLimited = error.message?.includes("429") || error.message?.includes("rate");
-      return { success: false, error: error.message, rateLimited: isRateLimited };
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const isRateLimited = errorMessage.includes("429") || errorMessage.includes("rate");
+      return { success: false, error: errorMessage, rateLimited: isRateLimited };
     }
   }
 

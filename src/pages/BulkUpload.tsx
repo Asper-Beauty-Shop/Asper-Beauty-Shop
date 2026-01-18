@@ -448,7 +448,7 @@ export default function BulkUpload() {
           errors.push({
             sku: product.sku,
             name: product.name,
-            error: error.message || "Unknown error",
+            error: errorMessage,
           });
           setShopifyProgress(prev => ({
             ...prev,
