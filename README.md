@@ -46,16 +46,24 @@ Typography:
 ## 📁 Project Structure
 
 ```
-src/
-├── assets/           # Images and static assets
-├── components/       # Reusable UI components
-│   └── ui/          # shadcn/ui components
-├── contexts/        # React context providers
-├── hooks/           # Custom React hooks
-├── lib/             # Utility functions
-├── pages/           # Route pages
-└── stores/          # Zustand state stores
+Asper-Beauty-Shop/
+├── data/            # Organized data files (inventory, products)
+├── docs/            # Comprehensive technical documentation
+├── src/
+│   ├── assets/      # Images and static assets
+│   ├── components/  # Reusable UI components
+│   │   └── ui/     # shadcn/ui components
+│   ├── constants/   # Application constants
+│   ├── contexts/    # React context providers
+│   ├── hooks/       # Custom React hooks
+│   ├── lib/         # Utility functions
+│   ├── pages/       # Route pages
+│   ├── stores/      # Zustand state stores
+│   └── types/       # TypeScript type definitions
+└── supabase/        # Database & edge functions
 ```
+
+For detailed structure information, see [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)
 
 ## 🚀 Getting Started
 
@@ -114,6 +122,17 @@ The app supports:
 - **Arabic** (RTL)
 
 Language switching is available in the header.
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the `/docs` directory:
+
+- **[Architecture](./docs/ARCHITECTURE.md)** - System design and technical architecture
+- **[Database Schema](./docs/DATABASE.md)** - Database structure and models
+- **[API Documentation](./docs/API.md)** - API integration guides
+- **[Project Structure](./PROJECT_STRUCTURE.md)** - Detailed project organization
+- **[Contributing Guide](./CONTRIBUTING.md)** - How to contribute
+- **[Code of Conduct](./CODE_OF_CONDUCT.md)** - Community guidelines
 
 ## 🔧 Development
 
