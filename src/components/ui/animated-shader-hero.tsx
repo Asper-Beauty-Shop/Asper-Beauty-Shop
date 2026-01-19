@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 interface HeroProps {
@@ -138,10 +138,18 @@ class WebGLRenderer {
   private buffer: WebGLBuffer | null = null;
   private scale: number;
   private shaderSource: string;
-  private mouseMove = [0, 0];
-  private mouseCoords = [0, 0];
+  private mouseMove: [number, number] = [0, 0];
+  private mouseCoords: [number, number] = [0, 0];
   private pointerCoords = [0, 0];
   private nbrOfPointers = 0;
+  private uniforms: {
+    resolution: WebGLUniformLocation | null;
+    time: WebGLUniformLocation | null;
+    move: WebGLUniformLocation | null;
+    touch: WebGLUniformLocation | null;
+    pointerCount: WebGLUniformLocation | null;
+    pointers: WebGLUniformLocation | null;
+  } | null = null;
 
   private vertexSrc = `#version 300 es
 precision highp float;
@@ -165,11 +173,11 @@ void main(){gl_Position=position;}`;
     this.init();
   }
 
-  updateMove(deltas: number[]) {
+  updateMove(deltas: [number, number]) {
     this.mouseMove = deltas;
   }
 
-  updateMouse(coords: number[]) {
+  updateMouse(coords: [number, number]) {
     this.mouseCoords = coords;
   }
 
@@ -254,31 +262,36 @@ void main(){gl_Position=position;}`;
     gl.enableVertexAttribArray(position);
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
-    (program as any).resolution = gl.getUniformLocation(program, 'resolution');
-    (program as any).time = gl.getUniformLocation(program, 'time');
-    (program as any).move = gl.getUniformLocation(program, 'move');
-    (program as any).touch = gl.getUniformLocation(program, 'touch');
-    (program as any).pointerCount = gl.getUniformLocation(program, 'pointerCount');
-    (program as any).pointers = gl.getUniformLocation(program, 'pointers');
+    this.uniforms = {
+      resolution: gl.getUniformLocation(program, 'resolution'),
+      time: gl.getUniformLocation(program, 'time'),
+      move: gl.getUniformLocation(program, 'move'),
+      touch: gl.getUniformLocation(program, 'touch'),
+      pointerCount: gl.getUniformLocation(program, 'pointerCount'),
+      pointers: gl.getUniformLocation(program, 'pointers'),
+    };
   }
 
   render(now = 0) {
     const gl = this.gl;
     const program = this.program;
     
-    if (!program || gl.getProgramParameter(program, gl.DELETE_STATUS)) return;
+    if (!program || gl.getProgramParameter(program, gl.DELETE_STATUS) || !this.uniforms) return;
 
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-    
-    gl.uniform2f((program as any).resolution, this.canvas.width, this.canvas.height);
-    gl.uniform1f((program as any).time, now * 1e-3);
-    gl.uniform2f((program as any).move, ...this.mouseMove as [number, number]);
-    gl.uniform2f((program as any).touch, ...this.mouseCoords as [number, number]);
-    gl.uniform1i((program as any).pointerCount, this.nbrOfPointers);
-    gl.uniform2fv((program as any).pointers, this.pointerCoords);
+
+    const { resolution, time, move, touch, pointerCount, pointers } = this.uniforms;
+    if (!resolution || !time || !move || !touch || !pointerCount || !pointers) return;
+
+    gl.uniform2f(resolution, this.canvas.width, this.canvas.height);
+    gl.uniform1f(time, now * 1e-3);
+    gl.uniform2f(move, ...this.mouseMove);
+    gl.uniform2f(touch, ...this.mouseCoords);
+    gl.uniform1i(pointerCount, this.nbrOfPointers);
+    gl.uniform2fv(pointers, this.pointerCoords);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 }
@@ -286,15 +299,17 @@ void main(){gl_Position=position;}`;
 class PointerHandler {
   private scale: number;
   private active = false;
-  private pointers = new Map<number, number[]>();
-  private lastCoords = [0, 0];
-  private moves = [0, 0];
+  private pointers = new Map<number, [number, number]>();
+  private lastCoords: [number, number] = [0, 0];
+  private moves: [number, number] = [0, 0];
 
   constructor(element: HTMLCanvasElement, scale: number) {
     this.scale = scale;
     
-    const map = (el: HTMLCanvasElement, s: number, x: number, y: number) => 
-      [x * s, el.height - y * s];
+    const map = (el: HTMLCanvasElement, s: number, x: number, y: number): [number, number] => [
+      x * s,
+      el.height - y * s,
+    ];
 
     element.addEventListener('pointerdown', (e) => {
       this.active = true;
@@ -347,7 +362,7 @@ class PointerHandler {
       : [0, 0];
   }
 
-  get first(): number[] {
+  get first(): [number, number] {
     return this.pointers.values().next().value || this.lastCoords;
   }
 }
@@ -358,7 +373,7 @@ const useShaderBackground = () => {
   const rendererRef = useRef<WebGLRenderer | null>(null);
   const pointersRef = useRef<PointerHandler | null>(null);
 
-  const resize = () => {
+  const resize = useCallback(() => {
     if (!canvasRef.current) return;
     
     const canvas = canvasRef.current;
@@ -367,12 +382,10 @@ const useShaderBackground = () => {
     canvas.width = window.innerWidth * dpr;
     canvas.height = window.innerHeight * dpr;
     
-    if (rendererRef.current) {
-      rendererRef.current.updateScale(dpr);
-    }
-  };
+    rendererRef.current?.updateScale(dpr);
+  }, []);
 
-  const loop = (now: number) => {
+  const loop = useCallback((now: number) => {
     if (!rendererRef.current || !pointersRef.current) return;
     
     rendererRef.current.updateMouse(pointersRef.current.first);
@@ -381,7 +394,7 @@ const useShaderBackground = () => {
     rendererRef.current.updateMove(pointersRef.current.move);
     rendererRef.current.render(now);
     animationFrameRef.current = requestAnimationFrame(loop);
-  };
+  }, []);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -414,7 +427,7 @@ const useShaderBackground = () => {
         rendererRef.current.reset();
       }
     };
-  }, []);
+  }, [loop, resize]);
 
   return canvasRef;
 };

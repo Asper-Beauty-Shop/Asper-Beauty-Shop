@@ -41,8 +41,18 @@ const DEFAULT_CONFIG: QueueConfig = {
   requestDelay: 2000, // 2 seconds between requests
 };
 
-type QueueEventType = "itemUpdate" | "statsUpdate" | "batchComplete" | "queueComplete" | "error" | "paused" | "resumed";
-type QueueEventCallback = (data: any) => void;
+type QueueEventMap = {
+  itemUpdate: QueueItem;
+  statsUpdate: QueueStats;
+  batchComplete: { batch: QueueItem[]; stats: QueueStats };
+  queueComplete: QueueStats;
+  error: { type: "rateLimit" | "unknown"; item?: QueueItem; message?: string };
+  paused: { reason: "rateLimit" | "manual" };
+  resumed: null;
+};
+
+type QueueEventType = keyof QueueEventMap;
+type QueueEventCallback<T extends QueueEventType = QueueEventType> = (data: QueueEventMap[T]) => void;
 
 class ImageGenerationQueue {
   private queue: Map<string, QueueItem> = new Map();
@@ -58,23 +68,23 @@ class ImageGenerationQueue {
   }
 
   // Event handling
-  on(event: QueueEventType, callback: QueueEventCallback) {
+  on<T extends QueueEventType>(event: T, callback: QueueEventCallback<T>) {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, []);
     }
-    this.eventListeners.get(event)!.push(callback);
+    this.eventListeners.get(event)!.push(callback as QueueEventCallback);
     return () => this.off(event, callback);
   }
 
-  off(event: QueueEventType, callback: QueueEventCallback) {
+  off<T extends QueueEventType>(event: T, callback: QueueEventCallback<T>) {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
-      const index = listeners.indexOf(callback);
+      const index = listeners.indexOf(callback as QueueEventCallback);
       if (index > -1) listeners.splice(index, 1);
     }
   }
 
-  private emit(event: QueueEventType, data: any) {
+  private emit<T extends QueueEventType>(event: T, data: QueueEventMap[T]) {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
       listeners.forEach(callback => callback(data));
@@ -286,10 +296,11 @@ class ImageGenerationQueue {
       }
 
       return { success: false, error: "No image URL returned" };
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(`Exception processing ${item.name}:`, err);
-      const isRateLimited = err.message?.includes("429") || err.message?.includes("rate");
-      return { success: false, error: err.message, rateLimited: isRateLimited };
+      const message = err instanceof Error ? err.message : "Unknown error";
+      const isRateLimited = message.includes("429") || message.toLowerCase().includes("rate");
+      return { success: false, error: message, rateLimited: isRateLimited };
     }
   }
 
@@ -313,7 +324,7 @@ class ImageGenerationQueue {
     // Resume automatically
     if (this.isProcessing) {
       this.isPaused = false;
-      this.emit("resumed", {});
+      this.emit("resumed", null);
     }
   }
 
@@ -327,7 +338,7 @@ class ImageGenerationQueue {
       this.start();
     } else {
       this.isPaused = false;
-      this.emit("resumed", {});
+      this.emit("resumed", null);
     }
   }
 
