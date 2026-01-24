@@ -53,6 +53,13 @@ export const ProductCard = ({ product }: ProductCardProps) => {
   // Extract brand from vendor or title
   const brand = (node as any).vendor || node.title.split(' ')[0];
 
+  const isOrganic = Array.isArray(tags)
+    ? tags.some((tag: string) => tag.toLowerCase().includes('organic'))
+    : typeof tags === 'string' && tags.toLowerCase().includes('organic');
+
+  // Extract key benefits for the reveal effect
+  const benefits = extractKeyBenefits((node as any).description || '', language);
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -95,7 +102,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
       <div className="bg-white rounded-lg overflow-hidden transition-all duration-400 ease-in-out border border-transparent group-hover:border-gold group-hover:shadow-lg">
         
         {/* Image Container */}
-        <div className="aspect-square bg-secondary overflow-hidden relative">
+        <div className="aspect-square bg-cream overflow-hidden relative">
           {firstImage ? (
             <>
               <OptimizedImage
@@ -107,9 +114,24 @@ export const ProductCard = ({ product }: ProductCardProps) => {
                 height={400}
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               />
+              
+              {/* Organic Ingredient Reveal Overlay */}
+              {isOrganic && benefits.length > 0 && (
+                <div className="absolute inset-0 bg-cream/95 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 p-6 z-10 text-center pointer-events-none">
+                  <p className="font-script text-burgundy text-2xl mb-3">{language === 'ar' ? 'طبيعة نقية' : 'Pure Nature'}</p>
+                  <div className="w-8 h-px bg-gold mb-3"></div>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {benefits.slice(0, 3).map((benefit, idx) => (
+                      <span key={idx} className="text-xs font-body uppercase tracking-wider text-warm-brown">
+                        {benefit}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-secondary">
+            <div className="w-full h-full flex items-center justify-center bg-cream">
               <span className="text-muted-foreground font-body text-sm">{t.noImage}</span>
             </div>
           )}
@@ -148,7 +170,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           </button>
 
           {/* Smart Hover Buttons - Hidden on mobile (no hover) */}
-          <div className="hidden md:flex absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-400 ease-in-out">
+          <div className="hidden md:flex absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-400 ease-in-out z-30">
             <Button
               onClick={handleAddToCart}
               className="flex-1 bg-burgundy text-white hover:bg-burgundy-light rounded-none py-3 font-body text-xs tracking-widest uppercase border-r border-gold/20"
