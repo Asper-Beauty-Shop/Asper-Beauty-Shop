@@ -220,7 +220,7 @@ const ProductDetail = () => {
             {/* Left Column - Image Gallery (Sticky) */}
             <div className="lg:sticky lg:top-[100px] lg:self-start lg:pr-8">
               {/* Main Image */}
-              <div className="relative aspect-square bg-white rounded-lg overflow-hidden mb-4 group">
+              <div className="relative aspect-square bg-cream rounded-lg overflow-hidden mb-4 group">
                 {images[selectedImage] ? (
                   <img
                     src={images[selectedImage].node.url}
