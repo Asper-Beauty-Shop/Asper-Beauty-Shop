@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { ShoppingBag, Eye, Heart, Star, Sparkles, Info } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { QuickViewModal } from "./QuickViewModal";
-import { getLocalizedDescription, translateTitle } from "@/lib/productUtils";
+import { getLocalizedDescription, translateTitle, extractKeyBenefits } from "@/lib/productUtils";
 import { OptimizedImage } from "./OptimizedImage";
 
 interface ProductCardProps {
@@ -53,6 +53,11 @@ export const ProductCard = ({ product }: ProductCardProps) => {
   // Extract brand from vendor or title
   const brand = (node as any).vendor || node.title.split(' ')[0];
 
+  const isOrganic = (node.productType && node.productType.toLowerCase().includes('organic')) || 
+                    tags.some((t: any) => typeof t === 'string' && t.toLowerCase().includes('organic'));
+
+  const benefits = isOrganic ? extractKeyBenefits(node.description, language) : [];
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -95,13 +100,13 @@ export const ProductCard = ({ product }: ProductCardProps) => {
       <div className="bg-white rounded-lg overflow-hidden transition-all duration-400 ease-in-out border border-transparent group-hover:border-gold group-hover:shadow-lg">
         
         {/* Image Container */}
-        <div className="aspect-square bg-secondary overflow-hidden relative">
+        <div className="aspect-square bg-cream overflow-hidden relative">
           {firstImage ? (
             <>
               <OptimizedImage
                 src={firstImage.url}
                 alt={firstImage.altText || node.title}
-                className="w-full h-full object-cover transition-transform duration-400 ease-in-out group-hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-400 ease-in-out group-hover:scale-105 mix-blend-multiply"
                 loading="lazy"
                 width={400}
                 height={400}
@@ -147,8 +152,27 @@ export const ProductCard = ({ product }: ProductCardProps) => {
             <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
           </button>
 
+          {/* Ingredient Reveal Overlay for Organic */}
+          {isOrganic && (
+            <div className="hidden md:flex absolute inset-0 bg-cream/95 opacity-0 group-hover:opacity-100 transition-opacity duration-400 p-6 flex-col items-center justify-center text-center z-10">
+              <p className="font-display text-lg text-burgundy mb-3 italic">
+                {language === 'ar' ? 'المكونات' : 'The Ingredients'}
+              </p>
+              <div className="w-8 h-px bg-gold mb-3" />
+              <div className="font-body text-xs text-muted-foreground space-y-2 leading-relaxed">
+                {benefits.length > 0 ? benefits.slice(0, 3).map((b, i) => (
+                   <p key={i} className="text-burgundy/80">{b}</p>
+                )) : (
+                   <p className="text-burgundy/80">
+                     {language === 'ar' ? 'مكونات عضوية طبيعية 100٪' : '100% Organic & Natural Ingredients'}
+                   </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Smart Hover Buttons - Hidden on mobile (no hover) */}
-          <div className="hidden md:flex absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-400 ease-in-out">
+          <div className={`hidden md:flex absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-400 ease-in-out ${isOrganic ? 'z-20' : ''}`}>
             <Button
               onClick={handleAddToCart}
               className="flex-1 bg-burgundy text-white hover:bg-burgundy-light rounded-none py-3 font-body text-xs tracking-widest uppercase border-r border-gold/20"
