@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "./logger";
 
 export interface QueueItem {
   id: string;
@@ -149,7 +150,7 @@ class ImageGenerationQueue {
     this.isPaused = false;
     this.abortController = new AbortController();
     
-    console.log("Queue started");
+    logger.debug("Queue started");
     
     while (this.isProcessing && !this.isPaused) {
       const pendingItems = this.getAllItems().filter(
@@ -175,7 +176,7 @@ class ImageGenerationQueue {
   }
 
   private async processBatch(batch: QueueItem[]) {
-    console.log(`Processing batch of ${batch.length} items`);
+    logger.debug(`Processing batch of ${batch.length} items`);
     
     // Mark all as processing
     batch.forEach(item => {
@@ -296,7 +297,7 @@ class ImageGenerationQueue {
   }
 
   private async handleRateLimit(item: QueueItem) {
-    console.log("Rate limited, pausing queue...");
+    logger.debug("Rate limited, pausing queue...");
     this.emit("error", { type: "rateLimit", item });
     
     // Mark item for retry

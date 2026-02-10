@@ -13,6 +13,7 @@ import {
   CheckCircle2, AlertCircle, Loader2, Play, Pause, RefreshCw,
   Download, Table, Clock, Zap, Settings, RotateCcw, Square
 } from "lucide-react";
+import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -154,7 +155,7 @@ export default function BulkUpload() {
 
       // Get headers from the first row
       const headers = Object.keys(jsonData[0]);
-      console.log("Found headers:", headers);
+      logger.debug("Found headers:", headers);
 
       // Find matching columns
       const skuCol = findColumn(headers, COLUMN_MAPPINGS.sku);
@@ -162,7 +163,7 @@ export default function BulkUpload() {
       const costCol = findColumn(headers, COLUMN_MAPPINGS.costPrice);
       const priceCol = findColumn(headers, COLUMN_MAPPINGS.sellingPrice);
 
-      console.log("Mapped columns:", { skuCol, nameCol, costCol, priceCol });
+      logger.debug("Mapped columns:", { skuCol, nameCol, costCol, priceCol });
 
       if (!nameCol) {
         throw new Error(`Could not find product name column. Found columns: ${headers.join(", ")}`);
@@ -228,7 +229,7 @@ export default function BulkUpload() {
       }
 
       const headers = Object.keys(jsonData[0]);
-      console.log("Found headers:", headers);
+      logger.debug("Found headers:", headers);
 
       const skuCol = findColumn(headers, COLUMN_MAPPINGS.sku);
       const nameCol = findColumn(headers, COLUMN_MAPPINGS.name);
