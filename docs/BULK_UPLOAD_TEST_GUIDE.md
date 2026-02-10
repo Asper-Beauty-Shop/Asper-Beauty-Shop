@@ -28,7 +28,7 @@ Before testing, ensure the following are configured:
 ### Step 1: Upload Data
 
 **What to do:**
-1. Navigate to `http://localhost:5173/admin/bulk-upload`
+1. Navigate to `http://localhost:8080/admin/bulk-upload`
 2. Click **"Load sample file"** (uses `public/data/products-data.xlsx`) or upload your own `.xlsx`
 
 **What it uses:**
