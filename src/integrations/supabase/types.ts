@@ -368,85 +368,26 @@ export const Constants = {
 } as const
 
 // ============================================================================
-// Digital Tray Types - For frontend consumption
+// Database Types - Direct database schema types
 // ============================================================================
 
-/** Valid skin concerns for the Digital Tray */
-export type SkinConcern = Database["public"]["Enums"]["skin_concern"];
+/** Database skin concern enum (Step_1, Step_2, Step_3) */
+export type DbSkinConcern = Database["public"]["Enums"]["skin_concern"];
 
-/** Regimen steps: Cleanse, Treat, Protect */
-export type RegimenStep = Database["public"]["Enums"]["regimen_step"];
+/** Database regimen step enum */
+export type DbRegimenStep = Database["public"]["Enums"]["regimen_step"];
 
-/** A product in the Digital Tray */
-export interface DigitalTrayProduct {
-  id: string;
-  shopify_product_id: string;
-  shopify_variant_id: string;
-  handle: string;
-  title: string;
-  description: string | null;
-  vendor: string | null;
-  price: number;
-  compare_at_price: number | null;
-  image_url: string | null;
-  step: RegimenStep;
-  is_hero: boolean;
-  is_bestseller: boolean;
-  inventory_total: number;
-  step_label: {
-    en: string;
-    ar: string;
-  };
-  available: true;
-}
+/** Database row type for digital_tray_products table */
+export type DbDigitalTrayProduct = Database["public"]["Tables"]["digital_tray_products"]["Row"];
 
-/** Fallback slot when product is unavailable */
-export interface DigitalTrayFallback {
-  available: false;
-  step_label: {
-    en: string;
-    ar: string;
-  };
-  fallback_message: {
-    en: string;
-    ar: string;
-  };
-  fallback_action: "open_chat";
-}
-
-/** A slot in the Digital Tray (product or fallback) */
-export type DigitalTraySlot = DigitalTrayProduct | DigitalTrayFallback;
-
-/** The complete Digital Tray response from the Edge Function */
-export interface DigitalTrayResponse {
-  success: true;
-  data: {
-    concern: {
-      key: SkinConcern;
-      label: {
-        en: string;
-        ar: string;
-      };
-    };
-    regimen: {
-      step_1: DigitalTraySlot;
-      step_2: DigitalTraySlot;
-      step_3: DigitalTraySlot;
-    };
-    generated_at: string;
-  };
-  meta: {
-    version: string;
-    cache_ttl: number;
-  };
-}
-
-/** Error response from the Edge Function */
-export interface DigitalTrayErrorResponse {
-  success: false;
-  error: {
-    code: string;
-    message: string;
-    valid_concerns: readonly SkinConcern[];
-  };
-}
+// ============================================================================
+// Re-exports from @/types/digitalTray for convenience
+// Frontend types are defined in src/types/digitalTray.ts
+// ============================================================================
+// Import from @/types/digitalTray for:
+// - SkinConcern (API concern tags with descriptive names)
+// - RegimenStep (Step_1_Cleanser, Step_2_Treatment, Step_3_Protection)
+// - DigitalTrayProductSlot, DigitalTrayFallbackSlot, DigitalTraySlot
+// - DigitalTrayResponse, DigitalTrayErrorResponse
+// - isSlotAvailable, isValidConcern, isValidStep
+// - STEP_LABELS, CONCERN_LABELS, SKIN_CONCERNS, REGIMEN_STEPS

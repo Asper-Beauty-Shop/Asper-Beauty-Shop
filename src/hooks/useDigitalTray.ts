@@ -4,127 +4,270 @@
  * React hook for fetching Digital Tray regimens from the Edge Function.
  * Provides loading states, error handling, and TypeScript-safe responses.
  * 
- * Usage:
+ * @example
  * ```tsx
- * const { tray, loading, error, refetch } = useDigitalTray("Concern_Acne");
+ * const { slots, concernTag, isLoading, error, refetch } = useDigitalTray("Concern_Acne");
  * 
- * // Check if a slot has a product available
- * if (tray?.data.regimen.step_1.available) {
- *   // Render product card
- * } else {
- *   // Render "Consult Pharmacist" fallback
- * }
+ * if (isLoading) return <Skeleton />;
+ * if (error || !slots) return <StaticRegimen />;
+ * 
+ * return <DigitalTray slots={slots} concernTag={concernTag} />;
  * ```
  */
 
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type {
   SkinConcern,
   DigitalTrayResponse,
-  DigitalTrayErrorResponse,
-} from "@/integrations/supabase/types";
+  DigitalTraySlots,
+  DigitalTrayAPIResponse,
+} from "@/types/digitalTray";
+import { isSuccessResponse, isValidConcern } from "@/types/digitalTray";
 
-interface UseDigitalTrayResult {
-  /** The Digital Tray response data */
-  tray: DigitalTrayResponse | null;
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface UseDigitalTrayResult {
+  /** The regimen slots (Step_1_Cleanser, Step_2_Treatment, Step_3_Protection) */
+  slots: DigitalTraySlots | null;
+  /** The current concern tag being fetched */
+  concernTag: SkinConcern | null;
   /** Loading state */
-  loading: boolean;
+  isLoading: boolean;
   /** Error message if the request failed */
   error: string | null;
   /** Refetch the tray data */
   refetch: () => Promise<void>;
+  /** Full response data (includes meta) */
+  response: DigitalTrayResponse | null;
 }
+
+export interface UseDigitalTrayOptions {
+  /** Whether to fetch immediately on mount (default: true) */
+  fetchOnMount?: boolean;
+  /** Cache TTL in milliseconds (default: 5 minutes) */
+  cacheTTL?: number;
+}
+
+// ============================================================================
+// Cache
+// ============================================================================
+
+interface CacheEntry {
+  data: DigitalTrayResponse;
+  timestamp: number;
+}
+
+const cache = new Map<SkinConcern, CacheEntry>();
+
+function getCachedResponse(concern: SkinConcern, ttl: number): DigitalTrayResponse | null {
+  const entry = cache.get(concern);
+  if (!entry) return null;
+  
+  const isExpired = Date.now() - entry.timestamp > ttl;
+  if (isExpired) {
+    cache.delete(concern);
+    return null;
+  }
+  
+  return entry.data;
+}
+
+function setCachedResponse(concern: SkinConcern, data: DigitalTrayResponse): void {
+  cache.set(concern, {
+    data,
+    timestamp: Date.now(),
+  });
+}
+
+// ============================================================================
+// Hook
+// ============================================================================
 
 /**
  * Fetches a Digital Tray regimen for a specific skin concern
- * @param concern - The skin concern to fetch products for
- * @returns Object containing tray data, loading state, error, and refetch function
+ * 
+ * @param concern - The skin concern to fetch products for (or null to skip)
+ * @param options - Configuration options
+ * @returns Object containing slots, loading state, error, and refetch function
  */
-export function useDigitalTray(concern: SkinConcern | null): UseDigitalTrayResult {
-  const [tray, setTray] = useState<DigitalTrayResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+export function useDigitalTray(
+  concern: SkinConcern | string | null,
+  options: UseDigitalTrayOptions = {}
+): UseDigitalTrayResult {
+  const { fetchOnMount = true, cacheTTL = 5 * 60 * 1000 } = options;
+
+  const [slots, setSlots] = useState<DigitalTraySlots | null>(null);
+  const [response, setResponse] = useState<DigitalTrayResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Track if component is mounted to prevent state updates after unmount
+  const isMounted = useRef(true);
+  
+  // Validate and normalize the concern
+  const validConcern: SkinConcern | null = isValidConcern(concern) ? concern : null;
 
   const fetchTray = useCallback(async () => {
-    if (!concern) {
-      setTray(null);
+    // Skip if no valid concern
+    if (!validConcern) {
+      setSlots(null);
+      setResponse(null);
       setError(null);
       return;
     }
 
-    setLoading(true);
+    // Check environment variables
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl) {
+      console.error("[useDigitalTray] VITE_SUPABASE_URL is not configured");
+      setError("Service configuration error: Missing SUPABASE_URL");
+      setSlots(null);
+      setResponse(null);
+      return;
+    }
+
+    // Check cache first
+    const cachedData = getCachedResponse(validConcern, cacheTTL);
+    if (cachedData) {
+      console.log("[useDigitalTray] Using cached response for:", validConcern);
+      setResponse(cachedData);
+      setSlots(cachedData.data.regimen);
+      setError(null);
+      return;
+    }
+
+    setIsLoading(true);
     setError(null);
 
     try {
-      // Get the Supabase URL from the client
-      const supabaseUrl = (supabase as unknown as { supabaseUrl: string }).supabaseUrl 
-        || import.meta.env.VITE_SUPABASE_URL;
+      // Build request headers
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
 
-      if (!supabaseUrl) {
-        throw new Error("Supabase URL not configured");
+      // Add auth header if anon key is available
+      if (supabaseAnonKey) {
+        headers["apikey"] = supabaseAnonKey;
+        headers["Authorization"] = `Bearer ${supabaseAnonKey}`;
       }
 
       // Call the Edge Function
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/get-digital-tray?concern=${encodeURIComponent(concern)}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const url = `${supabaseUrl}/functions/v1/tray?concern=${encodeURIComponent(validConcern)}`;
+      console.log("[useDigitalTray] Fetching:", url);
 
-      const data = await response.json();
+      const fetchResponse = await fetch(url, {
+        method: "GET",
+        headers,
+      });
 
-      if (!response.ok) {
-        const errorData = data as DigitalTrayErrorResponse;
-        throw new Error(errorData.error?.message || "Failed to fetch tray");
+      const data: DigitalTrayAPIResponse = await fetchResponse.json();
+
+      // Check if component is still mounted
+      if (!isMounted.current) return;
+
+      if (!fetchResponse.ok || !isSuccessResponse(data)) {
+        const errorMessage = !isSuccessResponse(data) 
+          ? data.error?.message || "Failed to fetch tray"
+          : `HTTP ${fetchResponse.status}`;
+        throw new Error(errorMessage);
       }
 
-      setTray(data as DigitalTrayResponse);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "An error occurred";
-      setError(message);
-      setTray(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [concern]);
+      // Cache the successful response
+      setCachedResponse(validConcern, data);
 
+      setResponse(data);
+      setSlots(data.data.regimen);
+      setError(null);
+    } catch (err) {
+      if (!isMounted.current) return;
+      
+      const message = err instanceof Error ? err.message : "An unexpected error occurred";
+      console.error("[useDigitalTray] Error:", message);
+      setError(message);
+      setSlots(null);
+      setResponse(null);
+    } finally {
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
+    }
+  }, [validConcern, cacheTTL]);
+
+  // Fetch on mount/concern change
   useEffect(() => {
-    fetchTray();
-  }, [fetchTray]);
+    isMounted.current = true;
+    
+    if (fetchOnMount) {
+      fetchTray();
+    }
+
+    return () => {
+      isMounted.current = false;
+    };
+  }, [fetchTray, fetchOnMount]);
 
   return {
-    tray,
-    loading,
+    slots,
+    concernTag: validConcern,
+    isLoading,
     error,
     refetch: fetchTray,
+    response,
   };
 }
 
+// ============================================================================
+// Utility Exports
+// ============================================================================
+
 /**
- * Helper function to check if a tray slot is available
- * Type guard for DigitalTrayProduct vs DigitalTrayFallback
+ * Clears the cache for a specific concern or all concerns
+ * @param concern - Optional concern to clear (clears all if not provided)
  */
-export function isSlotAvailable(
-  slot: DigitalTrayResponse["data"]["regimen"]["step_1"]
-): slot is DigitalTrayResponse["data"]["regimen"]["step_1"] & { available: true } {
-  return slot.available === true;
+export function clearDigitalTrayCache(concern?: SkinConcern): void {
+  if (concern) {
+    cache.delete(concern);
+  } else {
+    cache.clear();
+  }
 }
 
 /**
- * Opens the Gorgias chat widget
- * Used when user clicks on a "Consult Pharmacist" fallback card
+ * Prefetch tray data for a concern (useful for hover preloading)
+ * @param concern - The concern to prefetch
  */
-export function openGorgiasChat(): void {
-  // Check if Gorgias chat widget is loaded
-  if (typeof window !== "undefined" && (window as unknown as { GorgiasChat?: { open: () => void } }).GorgiasChat) {
-    (window as unknown as { GorgiasChat: { open: () => void } }).GorgiasChat.open();
-  } else {
-    // Fallback: Open WhatsApp or contact page if Gorgias isn't available
-    console.warn("Gorgias chat not available, implement fallback");
+export async function prefetchDigitalTray(concern: SkinConcern): Promise<void> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !isValidConcern(concern)) return;
+
+  // Check if already cached
+  if (cache.has(concern)) return;
+
+  try {
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (supabaseAnonKey) {
+      headers["apikey"] = supabaseAnonKey;
+      headers["Authorization"] = `Bearer ${supabaseAnonKey}`;
+    }
+
+    const response = await fetch(
+      `${supabaseUrl}/functions/v1/tray?concern=${encodeURIComponent(concern)}`,
+      { method: "GET", headers }
+    );
+
+    const data: DigitalTrayAPIResponse = await response.json();
+
+    if (response.ok && isSuccessResponse(data)) {
+      setCachedResponse(concern, data);
+      console.log("[useDigitalTray] Prefetched:", concern);
+    }
+  } catch (err) {
+    console.warn("[useDigitalTray] Prefetch failed for:", concern, err);
   }
 }

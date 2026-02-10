@@ -1,9 +1,9 @@
 /**
- * get-digital-tray Edge Function
- * ================================
+ * Digital Tray Edge Function
+ * ===========================
  * The "Head Pharmacist" - validates requests and returns curated skincare regimens.
  * 
- * Endpoint: GET /functions/v1/get-digital-tray?concern=Concern_Acne
+ * Endpoint: GET /functions/v1/tray?concern=Concern_Acne
  * 
  * This function acts as the validation layer before touching the database,
  * ensuring the "3-Click Solution" delivers a clean, predictable Regimen Object.
@@ -32,14 +32,24 @@ const VALID_CONCERNS = [
 
 type ValidConcern = typeof VALID_CONCERNS[number];
 
-// Step labels for the regimen
-const STEP_LABELS: Record<string, { en: string; ar: string }> = {
-  step_1: { en: "Cleanse", ar: "تنظيف" },
-  step_2: { en: "Treat", ar: "علاج" },
-  step_3: { en: "Protect", ar: "حماية" },
+// Regimen step keys
+type RegimenStep = "Step_1_Cleanser" | "Step_2_Treatment" | "Step_3_Protection";
+
+// Step labels for the regimen (bilingual)
+const STEP_LABELS: Record<RegimenStep, { en: string; ar: string }> = {
+  Step_1_Cleanser: { en: "Cleanse", ar: "تنظيف" },
+  Step_2_Treatment: { en: "Treat", ar: "علاج" },
+  Step_3_Protection: { en: "Protect", ar: "حماية" },
 };
 
-// Concern display names
+// Database step to API step mapping
+const DB_TO_API_STEP: Record<string, RegimenStep> = {
+  "Step_1": "Step_1_Cleanser",
+  "Step_2": "Step_2_Treatment",
+  "Step_3": "Step_3_Protection",
+};
+
+// Concern display names (bilingual)
 const CONCERN_LABELS: Record<ValidConcern, { en: string; ar: string }> = {
   Concern_Acne: { en: "Acne & Blemishes", ar: "حب الشباب والبقع" },
   Concern_Hydration: { en: "Hydration", ar: "الترطيب" },
@@ -82,39 +92,56 @@ function errorResponse(
 }
 
 /**
- * Enriches the tray response with additional metadata
+ * Creates a fallback slot structure for unavailable products
  */
-function enrichTrayResponse(
+function createFallbackSlot(step: RegimenStep): Record<string, unknown> {
+  return {
+    available: false,
+    step,
+    step_label: STEP_LABELS[step],
+    fallback_message: {
+      en: "Specific treatment temporarily unavailable. Chat with us for a custom alternative.",
+      ar: "العلاج المحدد غير متوفر مؤقتاً. تحدثي معنا للحصول على بديل مخصص.",
+    },
+    fallback_action: "open_chat",
+  };
+}
+
+/**
+ * Enriches a product slot with additional metadata
+ */
+function enrichProductSlot(
+  product: Record<string, unknown>,
+  step: RegimenStep
+): Record<string, unknown> {
+  return {
+    available: true,
+    ...product,
+    step,
+    step_label: STEP_LABELS[step],
+  };
+}
+
+/**
+ * Transforms the RPC response into the API response format
+ */
+function transformTrayResponse(
   trayData: Record<string, unknown>,
   concern: ValidConcern
 ): Record<string, unknown> {
   const concernLabel = CONCERN_LABELS[concern];
-  
-  // Process each step to add labels and handle null products
-  const processedSteps: Record<string, unknown> = {};
-  
-  for (const stepKey of ["step_1", "step_2", "step_3"]) {
+
+  // Process each step
+  const regimen: Record<string, unknown> = {};
+
+  for (const [dbStep, apiStep] of Object.entries(DB_TO_API_STEP)) {
+    const stepKey = dbStep.toLowerCase(); // step_1, step_2, step_3
     const stepData = trayData[stepKey];
-    const stepLabel = STEP_LABELS[stepKey];
-    
+
     if (stepData && stepData !== "null" && typeof stepData === "object") {
-      // Product exists - enrich with step metadata
-      processedSteps[stepKey] = {
-        ...(stepData as Record<string, unknown>),
-        step_label: stepLabel,
-        available: true,
-      };
+      regimen[apiStep] = enrichProductSlot(stepData as Record<string, unknown>, apiStep);
     } else {
-      // Product unavailable - return fallback structure for "Consult Pharmacist" card
-      processedSteps[stepKey] = {
-        available: false,
-        step_label: stepLabel,
-        fallback_message: {
-          en: "Specific treatment temporarily unavailable. Chat with us for a custom alternative.",
-          ar: "العلاج المحدد غير متوفر مؤقتاً. تحدثي معنا للحصول على بديل مخصص.",
-        },
-        fallback_action: "open_chat",
-      };
+      regimen[apiStep] = createFallbackSlot(apiStep);
     }
   }
 
@@ -125,8 +152,8 @@ function enrichTrayResponse(
         key: concern,
         label: concernLabel,
       },
-      regimen: processedSteps,
-      generated_at: trayData.generated_at,
+      regimen,
+      generated_at: trayData.generated_at || new Date().toISOString(),
     },
     meta: {
       version: "1.0",
@@ -191,15 +218,15 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     // Call the RPC function to get the tray
-    console.log(`Fetching digital tray for concern: ${concern}`);
-    
+    console.log(`[tray] Fetching digital tray for concern: ${concern}`);
+
     const { data: trayData, error: rpcError } = await supabase.rpc(
       "get_tray_by_concern",
       { concern_tag: concern }
     );
 
     if (rpcError) {
-      console.error("RPC error:", rpcError);
+      console.error("[tray] RPC error:", rpcError);
       return errorResponse(
         "Failed to retrieve regimen data",
         500,
@@ -208,14 +235,14 @@ serve(async (req) => {
     }
 
     // ==================== PROCESS RESPONSE ====================
-    // Enrich the response with metadata and fallback structures
-    const enrichedResponse = enrichTrayResponse(
+    // Transform the response into the API format
+    const response = transformTrayResponse(
       trayData as Record<string, unknown>,
       concern
     );
 
     // Return the structured tray object with 200 OK
-    return new Response(JSON.stringify(enrichedResponse), {
+    return new Response(JSON.stringify(response), {
       status: 200,
       headers: {
         ...corsHeaders,
@@ -224,7 +251,7 @@ serve(async (req) => {
       },
     });
   } catch (error) {
-    console.error("Unexpected error:", error);
+    console.error("[tray] Unexpected error:", error);
     return errorResponse(
       error instanceof Error ? error.message : "An unexpected error occurred",
       500,
