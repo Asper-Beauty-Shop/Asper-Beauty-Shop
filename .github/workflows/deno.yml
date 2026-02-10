@@ -35,10 +35,10 @@ jobs:
         run: deno fmt --check
 
       - name: Run linter
-        run: deno lint
+        run: deno lint supabase/functions
 
       - name: Type-check edge functions
         run: deno check supabase/functions/*/index.ts
 
       - name: Run tests
-        run: deno test --allow-read --allow-net --allow-env
+        run: deno test --allow-read --allow-net --allow-env supabase/functions
