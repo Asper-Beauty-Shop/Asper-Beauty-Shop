@@ -30,6 +30,20 @@ provides guidelines and instructions for contributing.
 
 ## 📝 Development Workflow
 
+## ✅ Define the work (reduce back-and-forth)
+
+Before starting anything beyond a tiny change, write down:
+
+- **Problem statement**: what’s broken/missing and who it affects
+- **Scope**: in-scope vs out-of-scope
+- **Acceptance criteria (Definition of Done)**: verifiable bullets
+  (Given/When/Then is great)
+- **Constraints**: performance, accessibility, security/privacy, and **English +
+  Arabic (RTL)** support
+- **Testing plan**: what to test and where regressions might occur
+
+There’s a short checklist you can reuse in `docs/task-definition.md`.
+
 ### Branch Naming
 
 Use descriptive branch names:

@@ -6,14 +6,37 @@ labels: ""
 assignees: ""
 ---
 
-**Is your feature request related to a problem? Please describe.** A clear and
-concise description of what the problem is. Ex. I'm always frustrated when [...]
+## Problem / user story
 
-**Describe the solution you'd like** A clear and concise description of what you
-want to happen.
+What problem does this solve, and for whom?
 
-**Describe alternatives you've considered** A clear and concise description of
-any alternative solutions or features you've considered.
+## Proposed solution
 
-**Additional context** Add any other context or screenshots about the feature
-request here.
+What should happen? Include UX notes if relevant.
+
+## Scope
+
+- In scope:
+- Out of scope:
+
+## Acceptance criteria (Definition of Done)
+
+Verifiable bullets (Given/When/Then is great).
+
+- [ ]
+- [ ]
+
+## Constraints / considerations
+
+- Accessibility:
+- Performance:
+- Security/privacy:
+- English + Arabic (RTL):
+
+## Alternatives considered
+
+What else did you consider, and why not?
+
+## Additional context
+
+Mockups, screenshots, examples, links, etc.
