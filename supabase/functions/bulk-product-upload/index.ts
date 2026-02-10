@@ -366,7 +366,7 @@ serve(async (req) => {
 
     if (action === "generate-image") {
       // Generate image for a single product using Lovable AI
-      const { productName, category, imagePrompt } = requestData;
+      const { productName, imagePrompt } = requestData;
 
       console.log(`Generating image for: ${productName}`);
 
@@ -428,7 +428,7 @@ serve(async (req) => {
         productName.replace(/[^a-zA-Z0-9]/g, "-").slice(0, 50)
       }.png`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("product-images")
         .upload(fileName, imageBuffer, {
           contentType: "image/png",
