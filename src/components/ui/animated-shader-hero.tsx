@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 interface HeroProps {
@@ -254,12 +254,20 @@ void main(){gl_Position=position;}`;
     gl.enableVertexAttribArray(position);
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
-    (program as any).resolution = gl.getUniformLocation(program, 'resolution');
-    (program as any).time = gl.getUniformLocation(program, 'time');
-    (program as any).move = gl.getUniformLocation(program, 'move');
-    (program as any).touch = gl.getUniformLocation(program, 'touch');
-    (program as any).pointerCount = gl.getUniformLocation(program, 'pointerCount');
-    (program as any).pointers = gl.getUniformLocation(program, 'pointers');
+    const extendedProgram = program as WebGLProgram & {
+      resolution?: WebGLUniformLocation | null;
+      time?: WebGLUniformLocation | null;
+      move?: WebGLUniformLocation | null;
+      touch?: WebGLUniformLocation | null;
+      pointerCount?: WebGLUniformLocation | null;
+      pointers?: WebGLUniformLocation | null;
+    };
+    extendedProgram.resolution = gl.getUniformLocation(program, 'resolution');
+    extendedProgram.time = gl.getUniformLocation(program, 'time');
+    extendedProgram.move = gl.getUniformLocation(program, 'move');
+    extendedProgram.touch = gl.getUniformLocation(program, 'touch');
+    extendedProgram.pointerCount = gl.getUniformLocation(program, 'pointerCount');
+    extendedProgram.pointers = gl.getUniformLocation(program, 'pointers');
   }
 
   render(now = 0) {
@@ -273,12 +281,20 @@ void main(){gl_Position=position;}`;
     gl.useProgram(program);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
     
-    gl.uniform2f((program as any).resolution, this.canvas.width, this.canvas.height);
-    gl.uniform1f((program as any).time, now * 1e-3);
-    gl.uniform2f((program as any).move, ...this.mouseMove as [number, number]);
-    gl.uniform2f((program as any).touch, ...this.mouseCoords as [number, number]);
-    gl.uniform1i((program as any).pointerCount, this.nbrOfPointers);
-    gl.uniform2fv((program as any).pointers, this.pointerCoords);
+    const extendedProgram = program as WebGLProgram & {
+      resolution?: WebGLUniformLocation | null;
+      time?: WebGLUniformLocation | null;
+      move?: WebGLUniformLocation | null;
+      touch?: WebGLUniformLocation | null;
+      pointerCount?: WebGLUniformLocation | null;
+      pointers?: WebGLUniformLocation | null;
+    };
+    gl.uniform2f(extendedProgram.resolution!, this.canvas.width, this.canvas.height);
+    gl.uniform1f(extendedProgram.time!, now * 1e-3);
+    gl.uniform2f(extendedProgram.move!, ...this.mouseMove as [number, number]);
+    gl.uniform2f(extendedProgram.touch!, ...this.mouseCoords as [number, number]);
+    gl.uniform1i(extendedProgram.pointerCount!, this.nbrOfPointers);
+    gl.uniform2fv(extendedProgram.pointers!, this.pointerCoords);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 }
@@ -358,7 +374,7 @@ const useShaderBackground = () => {
   const rendererRef = useRef<WebGLRenderer | null>(null);
   const pointersRef = useRef<PointerHandler | null>(null);
 
-  const resize = () => {
+  const resize = useCallback(() => {
     if (!canvasRef.current) return;
     
     const canvas = canvasRef.current;
@@ -370,9 +386,9 @@ const useShaderBackground = () => {
     if (rendererRef.current) {
       rendererRef.current.updateScale(dpr);
     }
-  };
+  }, []);
 
-  const loop = (now: number) => {
+  const loop = useCallback((now: number) => {
     if (!rendererRef.current || !pointersRef.current) return;
     
     rendererRef.current.updateMouse(pointersRef.current.first);
@@ -381,7 +397,7 @@ const useShaderBackground = () => {
     rendererRef.current.updateMove(pointersRef.current.move);
     rendererRef.current.render(now);
     animationFrameRef.current = requestAnimationFrame(loop);
-  };
+  }, []);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -414,7 +430,7 @@ const useShaderBackground = () => {
         rendererRef.current.reset();
       }
     };
-  }, []);
+  }, [loop, resize]);
 
   return canvasRef;
 };
