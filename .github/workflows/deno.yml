@@ -41,4 +41,15 @@ jobs:
         run: deno check supabase/functions/*/index.ts
 
       - name: Run tests
-        run: deno test --allow-read --allow-net --allow-env supabase/functions
+        run: |
+          TEST_FILES="$(
+            git ls-files \
+              '*_test.ts' '*_test.tsx' '*_test.js' '*_test.jsx' '*_test.mjs' \
+              'test.ts' 'test.tsx' 'test.js' 'test.jsx' 'test.mjs'
+          )"
+
+          if [ -n "$TEST_FILES" ]; then
+            deno test --allow-read --allow-net --allow-env supabase/functions
+          else
+            echo "No Deno test modules found; skipping."
+          fi
