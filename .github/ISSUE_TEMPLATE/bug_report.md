@@ -1,38 +1,64 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
-
+title: ""
+labels: ""
+assignees: ""
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## Summary
 
-**To Reproduce**
-Steps to reproduce the behavior:
+What is the bug? Provide a clear, concise description.
+
+## Steps to reproduce
+
 1. Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
 4. See error
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+## Expected behavior
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+What should happen?
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+## Actual behavior
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+What happens instead? Include error messages if you have them.
 
-**Additional context**
-Add any other context about the problem here.
+## Impact
+
+- Frequency: always / sometimes / rare
+- Severity: blocker / major / minor
+- Affected area: route/page/component (if known)
+- Language/locale: English (LTR) / Arabic (RTL)
+
+## Screenshots / recordings
+
+If applicable, add visuals to explain the problem.
+
+## Environment
+
+**Desktop**
+
+- OS:
+- Browser:
+- Version:
+
+**Mobile**
+
+- Device:
+- OS:
+- Browser:
+- Version:
+
+## Acceptance criteria (Definition of Done)
+
+How do we know this is fixed?
+
+- [ ] Bug no longer reproduces with the steps above
+- [ ] No console errors introduced
+- [ ] English + Arabic (RTL) remains correct (if relevant)
+
+## Additional context
+
+Anything else? Links to related issues/PRs, logs, etc.

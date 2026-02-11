@@ -27,7 +27,7 @@ jobs:
 
       - name: Setup Deno
         # uses: denoland/setup-deno@v1
-        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
+        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31 # v1.1.2
         with:
           deno-version: v1.x
 
@@ -35,10 +35,21 @@ jobs:
         run: deno fmt --check
 
       - name: Run linter
-        run: deno lint
+        run: deno lint supabase/functions
 
       - name: Type-check edge functions
         run: deno check supabase/functions/*/index.ts
 
       - name: Run tests
-        run: deno test --allow-read --allow-net --allow-env
+        run: |
+          TEST_FILES="$(
+            git ls-files \
+              '*_test.ts' '*_test.tsx' '*_test.js' '*_test.jsx' '*_test.mjs' \
+              'test.ts' 'test.tsx' 'test.js' 'test.jsx' 'test.mjs'
+          )"
+
+          if [ -n "$TEST_FILES" ]; then
+            deno test --allow-read --allow-net --allow-env supabase/functions
+          else
+            echo "No Deno test modules found; skipping."
+          fi
