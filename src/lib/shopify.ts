@@ -18,8 +18,10 @@ export interface ShopifyProduct {
     title: string;
     description: string;
     handle: string;
-    vendor?: string;
-    productType?: string;
+    vendor?: string | null;
+    productType?: string | null;
+    tags?: string[] | null;
+    createdAt?: string | null;
     priceRange: {
       minVariantPrice: {
         amount: string;
