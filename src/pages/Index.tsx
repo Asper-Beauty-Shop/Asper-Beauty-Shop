@@ -12,6 +12,7 @@ import { Footer } from "@/components/Footer";
 import { BeautyAssistant } from "@/components/BeautyAssistant";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { FloatingSocials } from "@/components/FloatingSocials";
+import { WhatsAppWidget } from "@/components/WhatsAppWidget";
 import { PageLoadingSkeleton } from "@/components/PageLoadingSkeleton";
 
 const Index = () => {
@@ -72,6 +73,7 @@ const Index = () => {
       </main>
       <Footer />
       <BeautyAssistant />
+      <WhatsAppWidget />
       <ScrollToTop />
       <FloatingSocials />
     </div>
