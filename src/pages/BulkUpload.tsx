@@ -13,6 +13,7 @@ import {
   CheckCircle2, AlertCircle, Loader2, Play, Pause, RefreshCw,
   Download, Table, Clock, Zap, Settings, RotateCcw, Square
 } from "lucide-react";
+import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -104,7 +105,7 @@ export default function BulkUpload() {
               ...p,
               status: queueItem.status === "queued" ? "pending" : 
                      queueItem.status === "retrying" ? "processing" :
-                     queueItem.status as any,
+                     queueItem.status as Product["status"],
               imageUrl: queueItem.imageUrl,
               error: queueItem.error,
             };
@@ -143,7 +144,7 @@ export default function BulkUpload() {
       const worksheet = workbook.Sheets[sheetName];
       
       // Convert to JSON with headers
-      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { 
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(worksheet, { 
         defval: "",
         raw: false 
       });
@@ -154,7 +155,7 @@ export default function BulkUpload() {
 
       // Get headers from the first row
       const headers = Object.keys(jsonData[0]);
-      console.log("Found headers:", headers);
+      logger.debug("Found headers:", headers);
 
       // Find matching columns
       const skuCol = findColumn(headers, COLUMN_MAPPINGS.sku);
@@ -162,7 +163,7 @@ export default function BulkUpload() {
       const costCol = findColumn(headers, COLUMN_MAPPINGS.costPrice);
       const priceCol = findColumn(headers, COLUMN_MAPPINGS.sellingPrice);
 
-      console.log("Mapped columns:", { skuCol, nameCol, costCol, priceCol });
+      logger.debug("Mapped columns:", { skuCol, nameCol, costCol, priceCol });
 
       if (!nameCol) {
         throw new Error(`Could not find product name column. Found columns: ${headers.join(", ")}`);
@@ -191,10 +192,11 @@ export default function BulkUpload() {
       setPreviewData(parsedProducts.slice(0, 10));
       toast.success(`Successfully loaded ${parsedProducts.length} products from ${file.name}`);
       setStep("categorize");
-    } catch (error: any) {
-      console.error("Parse error:", error);
-      setParseError(error.message || "Failed to parse file");
-      toast.error(`Failed to parse file: ${error.message}`);
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error("Parse error:", err);
+      setParseError(err.message || "Failed to parse file");
+      toast.error(`Failed to parse file: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -217,7 +219,7 @@ export default function BulkUpload() {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       
-      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { 
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, string | number>>(worksheet, { 
         defval: "",
         raw: false 
       });
@@ -227,7 +229,7 @@ export default function BulkUpload() {
       }
 
       const headers = Object.keys(jsonData[0]);
-      console.log("Found headers:", headers);
+      logger.debug("Found headers:", headers);
 
       const skuCol = findColumn(headers, COLUMN_MAPPINGS.sku);
       const nameCol = findColumn(headers, COLUMN_MAPPINGS.name);
@@ -260,10 +262,11 @@ export default function BulkUpload() {
       setPreviewData(parsedProducts.slice(0, 10));
       toast.success(`Successfully loaded ${parsedProducts.length} products`);
       setStep("categorize");
-    } catch (error: any) {
-      console.error("Load error:", error);
-      setParseError(error.message || "Failed to load file");
-      toast.error(`Failed to load file: ${error.message}`);
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error("Load error:", err);
+      setParseError(err.message || "Failed to load file");
+      toast.error(`Failed to load file: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -298,11 +301,12 @@ export default function BulkUpload() {
       setSummary(data.summary);
       toast.success(`Categorized ${data.products.length} products into ${Object.keys(data.summary.categories).length} categories`);
       setStep("images");
-    } catch (error: any) {
-      console.error(error);
-      if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error(err);
+      if (err.message?.includes("401") || err.message?.includes("Unauthorized")) {
         toast.error("Authentication required. Please log in.");
-      } else if (error.message?.includes("403") || error.message?.includes("Forbidden")) {
+      } else if (err.message?.includes("403") || err.message?.includes("Forbidden")) {
         toast.error("Admin access required for bulk operations.");
       } else {
         toast.error("Failed to categorize products");
@@ -431,11 +435,12 @@ export default function BulkUpload() {
           // Add small delay between requests to avoid rate limiting
           await new Promise(resolve => setTimeout(resolve, 300));
           
-        } catch (error: any) {
-          console.error(`Failed to create ${product.name}:`, error);
+        } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          console.error(`Failed to create ${product.name}:`, err);
           
           // Check for auth errors and stop if unauthorized
-          if (error.message?.includes("401") || error.message?.includes("403") || error.message?.includes("Unauthorized") || error.message?.includes("Forbidden")) {
+          if (err.message?.includes("401") || err.message?.includes("403") || err.message?.includes("Unauthorized") || err.message?.includes("Forbidden")) {
             toast.error("Authorization failed. Please log in as an admin.");
             setIsShopifyUploading(false);
             return;

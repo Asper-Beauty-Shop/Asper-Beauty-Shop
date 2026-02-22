@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "./logger";
 
 export interface QueueItem {
   id: string;
@@ -42,7 +43,8 @@ const DEFAULT_CONFIG: QueueConfig = {
 };
 
 type QueueEventType = "itemUpdate" | "statsUpdate" | "batchComplete" | "queueComplete" | "error" | "paused" | "resumed";
-type QueueEventCallback = (data: any) => void;
+type QueueEventData = QueueItem | QueueStats | { type: string; item?: QueueItem; error?: string } | void;
+type QueueEventCallback = (data: QueueEventData) => void;
 
 class ImageGenerationQueue {
   private queue: Map<string, QueueItem> = new Map();
@@ -74,7 +76,7 @@ class ImageGenerationQueue {
     }
   }
 
-  private emit(event: QueueEventType, data: any) {
+  private emit(event: QueueEventType, data: QueueEventData) {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
       listeners.forEach(callback => callback(data));
@@ -148,7 +150,7 @@ class ImageGenerationQueue {
     this.isPaused = false;
     this.abortController = new AbortController();
     
-    console.log("Queue started");
+    logger.debug("Queue started");
     
     while (this.isProcessing && !this.isPaused) {
       const pendingItems = this.getAllItems().filter(
@@ -174,7 +176,7 @@ class ImageGenerationQueue {
   }
 
   private async processBatch(batch: QueueItem[]) {
-    console.log(`Processing batch of ${batch.length} items`);
+    logger.debug(`Processing batch of ${batch.length} items`);
     
     // Mark all as processing
     batch.forEach(item => {
@@ -286,15 +288,16 @@ class ImageGenerationQueue {
       }
 
       return { success: false, error: "No image URL returned" };
-    } catch (err: any) {
-      console.error(`Exception processing ${item.name}:`, err);
-      const isRateLimited = err.message?.includes("429") || err.message?.includes("rate");
-      return { success: false, error: err.message, rateLimited: isRateLimited };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error(`Exception processing ${item.name}:`, error);
+      const isRateLimited = error.message?.includes("429") || error.message?.includes("rate");
+      return { success: false, error: error.message, rateLimited: isRateLimited };
     }
   }
 
   private async handleRateLimit(item: QueueItem) {
-    console.log("Rate limited, pausing queue...");
+    logger.debug("Rate limited, pausing queue...");
     this.emit("error", { type: "rateLimit", item });
     
     // Mark item for retry
