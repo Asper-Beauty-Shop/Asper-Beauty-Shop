@@ -120,7 +120,7 @@ export function useDigitalTray(
 
     // Check environment variables
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
     if (!supabaseUrl) {
       console.error("[useDigitalTray] VITE_SUPABASE_URL is not configured");
@@ -133,7 +133,6 @@ export function useDigitalTray(
     // Check cache first
     const cachedData = getCachedResponse(validConcern, cacheTTL);
     if (cachedData) {
-      console.log("[useDigitalTray] Using cached response for:", validConcern);
       setResponse(cachedData);
       setSlots(cachedData.data.regimen);
       setError(null);
@@ -144,15 +143,13 @@ export function useDigitalTray(
     setError(null);
 
     try {
-      // Build request headers
       const headers: HeadersInit = {
         "Content-Type": "application/json",
       };
 
-      // Add auth header if anon key is available
-      if (supabaseAnonKey) {
-        headers["apikey"] = supabaseAnonKey;
-        headers["Authorization"] = `Bearer ${supabaseAnonKey}`;
+      if (supabaseKey) {
+        headers["apikey"] = supabaseKey;
+        headers["Authorization"] = `Bearer ${supabaseKey}`;
       }
 
       // Call the Edge Function
@@ -242,18 +239,17 @@ export function clearDigitalTrayCache(concern?: SkinConcern): void {
  */
 export async function prefetchDigitalTray(concern: SkinConcern): Promise<void> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
   if (!supabaseUrl || !isValidConcern(concern)) return;
 
-  // Check if already cached
   if (cache.has(concern)) return;
 
   try {
     const headers: HeadersInit = { "Content-Type": "application/json" };
-    if (supabaseAnonKey) {
-      headers["apikey"] = supabaseAnonKey;
-      headers["Authorization"] = `Bearer ${supabaseAnonKey}`;
+    if (supabaseKey) {
+      headers["apikey"] = supabaseKey;
+      headers["Authorization"] = `Bearer ${supabaseKey}`;
     }
 
     const response = await fetch(
