@@ -2,9 +2,9 @@
  * Digital Tray Edge Function
  * ===========================
  * The "Head Pharmacist" - validates requests and returns curated skincare regimens.
- * 
+ *
  * Endpoint: GET /functions/v1/tray?concern=Concern_Acne
- * 
+ *
  * This function acts as the validation layer before touching the database,
  * ensuring the "3-Click Solution" delivers a clean, predictable Regimen Object.
  */
@@ -15,7 +15,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // CORS headers for cross-origin requests
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
@@ -73,7 +74,7 @@ function isValidConcern(concern: string | null): concern is ValidConcern {
 function errorResponse(
   message: string,
   status: number,
-  code: string
+  code: string,
 ): Response {
   return new Response(
     JSON.stringify({
@@ -87,7 +88,7 @@ function errorResponse(
     {
       status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-    }
+    },
   );
 }
 
@@ -100,7 +101,8 @@ function createFallbackSlot(step: RegimenStep): Record<string, unknown> {
     step,
     step_label: STEP_LABELS[step],
     fallback_message: {
-      en: "Specific treatment temporarily unavailable. Chat with us for a custom alternative.",
+      en:
+        "Specific treatment temporarily unavailable. Chat with us for a custom alternative.",
       ar: "العلاج المحدد غير متوفر مؤقتاً. تحدثي معنا للحصول على بديل مخصص.",
     },
     fallback_action: "open_chat",
@@ -112,7 +114,7 @@ function createFallbackSlot(step: RegimenStep): Record<string, unknown> {
  */
 function enrichProductSlot(
   product: Record<string, unknown>,
-  step: RegimenStep
+  step: RegimenStep,
 ): Record<string, unknown> {
   return {
     available: true,
@@ -127,7 +129,7 @@ function enrichProductSlot(
  */
 function transformTrayResponse(
   trayData: Record<string, unknown>,
-  concern: ValidConcern
+  concern: ValidConcern,
 ): Record<string, unknown> {
   const concernLabel = CONCERN_LABELS[concern];
 
@@ -139,7 +141,10 @@ function transformTrayResponse(
     const stepData = trayData[stepKey];
 
     if (stepData && stepData !== "null" && typeof stepData === "object") {
-      regimen[apiStep] = enrichProductSlot(stepData as Record<string, unknown>, apiStep);
+      regimen[apiStep] = enrichProductSlot(
+        stepData as Record<string, unknown>,
+        apiStep,
+      );
     } else {
       regimen[apiStep] = createFallbackSlot(apiStep);
     }
@@ -173,7 +178,7 @@ serve(async (req) => {
     return errorResponse(
       "Method not allowed. Use GET request.",
       405,
-      "METHOD_NOT_ALLOWED"
+      "METHOD_NOT_ALLOWED",
     );
   }
 
@@ -188,16 +193,18 @@ serve(async (req) => {
       return errorResponse(
         "Missing required parameter: concern",
         400,
-        "MISSING_PARAMETER"
+        "MISSING_PARAMETER",
       );
     }
 
     // Validate that concern is a valid Medical Indication
     if (!isValidConcern(concern)) {
       return errorResponse(
-        `Invalid Medical Indication: "${concern}". Must be one of: ${VALID_CONCERNS.join(", ")}`,
+        `Invalid Medical Indication: "${concern}". Must be one of: ${
+          VALID_CONCERNS.join(", ")
+        }`,
         400,
-        "INVALID_MEDICAL_INDICATION"
+        "INVALID_MEDICAL_INDICATION",
       );
     }
 
@@ -211,7 +218,7 @@ serve(async (req) => {
       return errorResponse(
         "Service configuration error",
         500,
-        "CONFIGURATION_ERROR"
+        "CONFIGURATION_ERROR",
       );
     }
 
@@ -222,7 +229,7 @@ serve(async (req) => {
 
     const { data: trayData, error: rpcError } = await supabase.rpc(
       "get_tray_by_concern",
-      { concern_tag: concern }
+      { concern_tag: concern },
     );
 
     if (rpcError) {
@@ -230,7 +237,7 @@ serve(async (req) => {
       return errorResponse(
         "Failed to retrieve regimen data",
         500,
-        "DATABASE_ERROR"
+        "DATABASE_ERROR",
       );
     }
 
@@ -238,7 +245,7 @@ serve(async (req) => {
     // Transform the response into the API format
     const response = transformTrayResponse(
       trayData as Record<string, unknown>,
-      concern
+      concern,
     );
 
     // Return the structured tray object with 200 OK
@@ -255,7 +262,7 @@ serve(async (req) => {
     return errorResponse(
       error instanceof Error ? error.message : "An unexpected error occurred",
       500,
-      "INTERNAL_ERROR"
+      "INTERNAL_ERROR",
     );
   }
 });
