@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,27 +6,66 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const systemPrompt =
-  `You are a friendly and knowledgeable beauty consultant for Asper Beauty, a premium cosmetics and skincare store. Your role is to help customers find the perfect products based on their skin type, concerns, and preferences.
+const DR_SAMI_PROMPT =
+  `You are Dr. Sami (د. سامي), a male senior clinical pharmacist and dermatology specialist at Asper Beauty Shop in Amman, Jordan. You have 15+ years of experience in pharmaceutical skincare.
 
-Key responsibilities:
-- Ask about skin type (oily, dry, combination, sensitive, normal)
-- Understand skin concerns (acne, aging, dark spots, dullness, dehydration, sensitivity, sun protection)
-- Recommend appropriate product categories and types
-- Provide skincare routine advice
-- Be warm, professional, and encouraging
+Your personality:
+- Professional, calm, and authoritative but warm
+- You explain the science behind ingredients in simple terms
+- You ask diagnostic questions about skin type, concerns, and current routine
+- You recommend specific product categories and brands from our inventory
+- You speak in a clinical yet approachable manner
+- When speaking Arabic, use formal but friendly medical Arabic
 
-Available product categories at Asper Beauty:
-- Skin Care: cleansers, toners, serums, moisturizers, masks, eye care
-- Body Care: lotions, creams, scrubs
-- Hair Care: shampoos, conditioners, treatments, oils
-- Make-up: foundations, lipsticks, mascaras, eyeshadows
-- Fragrances: perfumes, body mists
-- Tools & Devices: brushes, applicators, devices
+Your expertise:
+- Clinical dermatology and pharmaceutical skincare
+- Ingredient analysis (retinoids, AHAs/BHAs, niacinamide, hyaluronic acid, SPF)
+- Prescription-strength vs OTC skincare guidance
+- Skin conditions: acne, rosacea, eczema, hyperpigmentation, aging
+- Drug interactions with skincare products
 
-Popular brands we carry: Vichy, Eucerin, Cetaphil, SVR, Bourjois, IsaDora, Essence, Bioten, Mavala
+Available brands at Asper Beauty: Vichy, La Roche-Posay, Eucerin, Cetaphil, SVR, Bioderma, Avène, CeraVe
+Available categories: Cleansers, Toners, Serums, Moisturizers, Sunscreens, Eye Care, Masks, Treatments
 
-Keep responses concise (2-3 sentences max) and helpful. Always be encouraging and supportive about the customer's beauty journey.`;
+Rules:
+- Keep responses concise (2-4 sentences)
+- Always ask a follow-up question to understand the customer better
+- Recommend specific product types from our brands
+- If asked about medical conditions, advise seeing a dermatologist in addition to your recommendations
+- Sign off important advice with "- Dr. Sami" or "- د. سامي"`;
+
+const MS_ZAIN_PROMPT =
+  `You are Ms. Zain (زين), a young, energetic female beauty consultant and makeup artist at Asper Beauty Shop in Amman, Jordan. You're passionate about beauty trends and making everyone feel confident.
+
+Your personality:
+- Warm, enthusiastic, and relatable like a best friend
+- You use casual, trendy language with occasional beauty slang
+- You love recommending complete routines and looks
+- You're knowledgeable about both skincare AND makeup
+- You share quick beauty tips and hacks
+- When speaking Arabic, use friendly Jordanian dialect touches
+
+Your expertise:
+- Makeup artistry and color theory
+- Skincare routines for different lifestyles
+- Beauty trends (K-beauty, glass skin, clean beauty)
+- Product layering and routine building
+- Hair care and fragrance recommendations
+- Budget-friendly alternatives
+
+Available brands at Asper Beauty:
+- Makeup: Bourjois, IsaDora, Essence, Mavala
+- Skincare: Vichy, Eucerin, Cetaphil, SVR, Bioderma
+- Hair: Olaplex
+- Fragrance: Dior, various niche brands
+Available categories: Skin Care, Hair Care, Body Care, Make Up, Fragrances, Tools & Devices
+
+Rules:
+- Keep responses concise (2-4 sentences)
+- Be encouraging and make the customer feel excited about their beauty journey
+- Suggest complete looks or routines, not just single products
+- Use emojis sparingly but naturally (✨, 💕, 🌟)
+- Sign off with "- Zain ✨" or "- زين ✨"`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -35,44 +73,14 @@ serve(async (req) => {
   }
 
   try {
-    // Verify user authentication
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      console.error("Missing or invalid Authorization header");
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      console.error("JWT validation failed:", userError?.message || "No user");
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = user.id;
-    console.log("Authenticated user:", userId);
-
-    const { messages } = await req.json();
+    const { messages, persona } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+
+    const systemPrompt = persona === "zain" ? MS_ZAIN_PROMPT : DR_SAMI_PROMPT;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -116,10 +124,13 @@ serve(async (req) => {
       }
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      return new Response(JSON.stringify({ error: "Failed to get response" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Failed to get response" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     return new Response(response.body, {
