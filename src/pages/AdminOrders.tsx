@@ -156,6 +156,7 @@ export default function AdminOrders() {
     if (isAdmin) {
       fetchOrders();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
   // Update order status

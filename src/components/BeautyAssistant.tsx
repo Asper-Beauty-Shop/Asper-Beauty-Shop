@@ -186,7 +186,7 @@ export const BeautyAssistant = () => {
       {/* Floating Pill Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 ${isRTL ? 'left-6' : 'right-6'} z-50 flex items-center gap-3 px-5 py-3 bg-white border-2 border-gold rounded-full shadow-lg hover:shadow-xl transition-all duration-400 group ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
+        className={`fixed bottom-20 lg:bottom-6 ${isRTL ? 'left-4 lg:left-6' : 'right-4 lg:right-6'} z-50 flex items-center gap-3 px-5 py-3 bg-white border-2 border-gold rounded-full shadow-lg hover:shadow-xl transition-all duration-400 group ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
         aria-label="Open beauty assistant"
       >
         <div className="w-8 h-8 rounded-full bg-burgundy flex items-center justify-center">
@@ -199,7 +199,7 @@ export const BeautyAssistant = () => {
 
       {/* Chat Window */}
       <div
-        className={`fixed bottom-6 ${isRTL ? 'left-6' : 'right-6'} z-50 w-[400px] max-w-[calc(100vw-3rem)] bg-white rounded-2xl shadow-2xl border border-gold/30 overflow-hidden transition-all duration-400 ${
+        className={`fixed bottom-20 lg:bottom-6 ${isRTL ? 'left-4 lg:left-6' : 'right-4 lg:right-6'} z-50 w-[400px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-gold/30 overflow-hidden transition-all duration-400 ${
           isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'
         }`}
       >
