@@ -120,7 +120,7 @@ export function useDigitalTray(
 
     // Check environment variables
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
     if (!supabaseUrl) {
       console.error("[useDigitalTray] VITE_SUPABASE_URL is not configured");
@@ -242,7 +242,7 @@ export function clearDigitalTrayCache(concern?: SkinConcern): void {
  */
 export async function prefetchDigitalTray(concern: SkinConcern): Promise<void> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
   if (!supabaseUrl || !isValidConcern(concern)) return;
 
