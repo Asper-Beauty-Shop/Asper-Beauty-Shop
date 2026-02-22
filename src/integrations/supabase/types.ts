@@ -68,6 +68,69 @@ export type Database = {
         }
         Relationships: []
       }
+      digital_tray_products: {
+        Row: {
+          id: string
+          shopify_product_id: string
+          shopify_variant_id: string
+          handle: string
+          title: string
+          description: string | null
+          vendor: string | null
+          price: number
+          compare_at_price: number | null
+          image_url: string | null
+          concern: Database["public"]["Enums"]["skin_concern"]
+          step: Database["public"]["Enums"]["regimen_step"]
+          is_hero: boolean
+          is_bestseller: boolean
+          inventory_total: number
+          available_for_sale: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          shopify_product_id: string
+          shopify_variant_id: string
+          handle: string
+          title: string
+          description?: string | null
+          vendor?: string | null
+          price: number
+          compare_at_price?: number | null
+          image_url?: string | null
+          concern: Database["public"]["Enums"]["skin_concern"]
+          step: Database["public"]["Enums"]["regimen_step"]
+          is_hero?: boolean
+          is_bestseller?: boolean
+          inventory_total?: number
+          available_for_sale?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          shopify_product_id?: string
+          shopify_variant_id?: string
+          handle?: string
+          title?: string
+          description?: string | null
+          vendor?: string | null
+          price?: number
+          compare_at_price?: number | null
+          image_url?: string | null
+          concern?: Database["public"]["Enums"]["skin_concern"]
+          step?: Database["public"]["Enums"]["regimen_step"]
+          is_hero?: boolean
+          is_bestseller?: boolean
+          inventory_total?: number
+          available_for_sale?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -124,6 +187,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_tray_by_concern: {
+        Args: {
+          concern_tag: Database["public"]["Enums"]["skin_concern"]
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -131,9 +200,31 @@ export type Database = {
         }
         Returns: boolean
       }
+      sync_tray_product: {
+        Args: {
+          p_shopify_product_id: string
+          p_shopify_variant_id: string
+          p_handle: string
+          p_title: string
+          p_description: string
+          p_vendor: string
+          p_price: number
+          p_compare_at_price: number
+          p_image_url: string
+          p_concern: Database["public"]["Enums"]["skin_concern"]
+          p_step: Database["public"]["Enums"]["regimen_step"]
+          p_is_hero: boolean
+          p_is_bestseller: boolean
+          p_inventory_total: number
+          p_available_for_sale: boolean
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "user"
+      skin_concern: "Concern_Acne" | "Concern_Hydration" | "Concern_AntiAging" | "Concern_Brightening" | "Concern_Sensitivity" | "Concern_SunProtection" | "Concern_DarkCircles"
+      regimen_step: "Step_1" | "Step_2" | "Step_3"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -262,6 +353,41 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      skin_concern: [
+        "Concern_Acne",
+        "Concern_Hydration",
+        "Concern_AntiAging",
+        "Concern_Brightening",
+        "Concern_Sensitivity",
+        "Concern_SunProtection",
+        "Concern_DarkCircles",
+      ],
+      regimen_step: ["Step_1", "Step_2", "Step_3"],
     },
   },
 } as const
+
+// ============================================================================
+// Database Types - Direct database schema types
+// ============================================================================
+
+/** Database skin concern enum (Step_1, Step_2, Step_3) */
+export type DbSkinConcern = Database["public"]["Enums"]["skin_concern"];
+
+/** Database regimen step enum */
+export type DbRegimenStep = Database["public"]["Enums"]["regimen_step"];
+
+/** Database row type for digital_tray_products table */
+export type DbDigitalTrayProduct = Database["public"]["Tables"]["digital_tray_products"]["Row"];
+
+// ============================================================================
+// Re-exports from @/types/digitalTray for convenience
+// Frontend types are defined in src/types/digitalTray.ts
+// ============================================================================
+// Import from @/types/digitalTray for:
+// - SkinConcern (API concern tags with descriptive names)
+// - RegimenStep (Step_1_Cleanser, Step_2_Treatment, Step_3_Protection)
+// - DigitalTrayProductSlot, DigitalTrayFallbackSlot, DigitalTraySlot
+// - DigitalTrayResponse, DigitalTrayErrorResponse
+// - isSlotAvailable, isValidConcern, isValidStep
+// - STEP_LABELS, CONCERN_LABELS, SKIN_CONCERNS, REGIMEN_STEPS
