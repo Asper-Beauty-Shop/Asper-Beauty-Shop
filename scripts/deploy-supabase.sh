@@ -30,6 +30,10 @@ npx supabase functions deploy tray --project-ref $PROJECT_REF
 echo "  → Deploying 'beauty-assistant' function..."
 npx supabase functions deploy beauty-assistant --project-ref $PROJECT_REF
 
+# Deploy dr-rose-channel-router function
+echo "  → Deploying 'dr-rose-channel-router' function..."
+npx supabase functions deploy dr-rose-channel-router --project-ref $PROJECT_REF
+
 # Deploy bulk-product-upload function
 echo "  → Deploying 'bulk-product-upload' function..."
 npx supabase functions deploy bulk-product-upload --project-ref $PROJECT_REF

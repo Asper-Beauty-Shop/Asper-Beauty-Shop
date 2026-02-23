@@ -14,6 +14,7 @@ A luxury e-commerce storefront for premium skincare and beauty products, built w
 - **Responsive Design** - Optimized for desktop, tablet, and mobile
 - **RTL Support** - Full Arabic language support with right-to-left layout
 - **Shopify Integration** - Connected to Shopify for product management and checkout
+- **Dr. Rose Omnichannel AI** - Shared AI "brain" deployed for web + social channel routing
 
 ## 🛠️ Tech Stack
 
@@ -85,6 +86,38 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## 🌹 Dr. Rose Omnichannel Deployment
+
+Dr. Rose is deployed through Supabase Edge Functions:
+
+- `beauty-assistant` - Web chat streaming endpoint.
+- `dr-rose-channel-router` - Omnichannel webhook/router for WhatsApp, Instagram, Facebook, TikTok/custom payloads.
+- `tray` - Digital tray recommendation endpoint.
+
+### Required Environment Variables
+
+Set the following before deploying Supabase functions:
+
+- `LOVABLE_API_KEY`
+- `DR_ROSE_WEBHOOK_VERIFY_TOKEN`
+- `DR_ROSE_CHANNEL_CALLBACK_URL` (optional but recommended)
+- `DR_ROSE_CHANNEL_CALLBACK_TOKEN` (optional)
+- `DR_ROSE_CHANNEL_CALLBACK_SECRET` (optional)
+
+### Deploy Functions
+
+```bash
+./scripts/deploy-supabase.sh
+```
+
+### Verify Dr. Rose Channel Router
+
+```bash
+curl "https://rgehleqcubtmcwyipyvi.supabase.co/functions/v1/dr-rose-channel-router?health=1"
+```
+
+Expected: JSON with `status: "ok"` and `configured` flags.
 
 ### Preview Production Build
 

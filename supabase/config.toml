@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.tray]
 verify_jwt = false
+
+[functions.dr-rose-channel-router]
+verify_jwt = false

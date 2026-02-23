@@ -163,7 +163,7 @@ export const Header = () => {
             {/* Social Media Icons */}
             <div className="flex items-center gap-1 border-r border-gold/30 pr-3 mr-1">
               <a 
-                href="https://www.instagram.com/asper.beauty.box/" 
+                href="https://www.instagram.com/asper.beauty.shop/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="p-1.5 text-gold hover:text-gold-light transition-colors duration-400"
@@ -171,7 +171,7 @@ export const Header = () => {
                 <Instagram className="w-4 h-4" strokeWidth={1.5} />
               </a>
               <a 
-                href="https://web.facebook.com/robu.sweileh/" 
+                href="https://www.facebook.com/robu.sweileh" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="p-1.5 text-gold hover:text-gold-light transition-colors duration-400"
@@ -179,7 +179,7 @@ export const Header = () => {
                 <Facebook className="w-4 h-4" strokeWidth={1.5} />
               </a>
               <a 
-                href="https://www.tiktok.com/@asper.pharmacy" 
+                href="https://www.tiktok.com/@asper.beauty.shop" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="p-1.5 text-gold hover:text-gold-light transition-colors duration-400"
