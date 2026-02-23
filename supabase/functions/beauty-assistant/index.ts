@@ -114,9 +114,9 @@ STORE OPERATIONS:
 - Returns: 30-day return policy (unopened). Use to reassure hesitant buyers.
 
 CONNECTED CHANNELS & SOCIAL MEDIA:
-- WhatsApp: +962 79 065 6666 (wa.me/962790656666)
-- Instagram: @asper.beauty.shop (instagram.com/asper.beauty.shop)
-- Facebook: facebook.com/asper.beauty.shop
+- WhatsApp: 00962790656666 (wa.me/962790656666)
+- Instagram: @asper.beauty.shop (https://www.instagram.com/asper.beauty.shop/)
+- Facebook: https://www.facebook.com/robu.sweileh
 - TikTok: @asper.beauty.shop (tiktok.com/@asper.beauty.shop)
 - Email: asperpharma@gmail.com
 
