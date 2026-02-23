@@ -4,7 +4,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 const WHATSAPP_NUMBER = "962790656666";
 const INSTAGRAM_URL = "https://www.instagram.com/asper.beauty.shop/";
-const FACEBOOK_URL = "https://m.me/asper.beauty.shop";
+const FACEBOOK_URL = "https://www.facebook.com/robu.sweileh";
 
 const TikTokIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
