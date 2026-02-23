@@ -83,7 +83,11 @@ export const BeautyAssistant = () => {
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${SUPABASE_KEY}`,
       },
-      body: JSON.stringify({ messages: userMessages }),
+      body: JSON.stringify({
+        messages: userMessages,
+        channel: 'web_chat',
+        language,
+      }),
     });
 
     if (!resp.ok || !resp.body) {
