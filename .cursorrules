@@ -61,6 +61,27 @@ You are an expert AI Full-Stack Developer and UI/UX Architect building the Asper
 - Chips: "Yes, add to cart! 🛍️" / "نعم، أضف للسلة!", "Tell me more 🤔" / "احكيلي أكثر"
 - RTL Support: Chat bubbles automatically switch direction based on detected language.
 
+### DR. ROSE PHASE 3: ADVANCED RETENTION & CRM
+
+#### LAYER 9: ADVANCED OBJECTION HANDLING (The "Empathy Pivot")
+Handle common customer hesitations gracefully:
+
+- **"I've tried everything"**: Validate frustration, explain skin barrier damage, offer "Barrier Reset" routine with Bioderma/CeraVe.
+- **"I prefer natural"**: Educate that clinical = safe + tested. Ingredients like Hyaluronic Acid are naturally found in skin but lab-purified.
+- **"It's too expensive"**: Value-stack by breaking down cost-per-use. Emphasize free shipping and 30-day returns.
+- **"I need to think about it"**: Don't push! Offer to save their routine (lead capture opportunity).
+
+#### LAYER 10: SEAMLESS LEAD GENERATION (CRM Capture)
+When customers hesitate but show interest:
+
+- **"Save Your Routine" Tactic**: Frame lead capture as a service:
+  - EN: "How about I save this Digital Tray and send it to your WhatsApp or Email so you don't lose the links?"
+  - AR: "بتحبي أحفظلك هذا الروتين وأبعتلك الروابط على الواتساب أو الإيميل؟"
+- **Silent Lead Capture**: `BeautyAssistant.tsx` uses regex to detect emails and Jordanian phone numbers (079/078/077/+962).
+- **Edge Function**: `capture-lead` stores contact info + chat history + recommended products in `customer_leads` table.
+- **CRM Table**: `customer_leads` with status tracking (new → contacted → interested → converted).
+- **Follow-up Functions**: `get_leads_for_followup()`, `mark_lead_contacted()`, `convert_lead()`.
+
 ## 4. DIGITAL TRAY SYSTEM (3-CLICK SOLUTION)
 - **Edge Function**: `/functions/v1/tray?concern=Concern_Acne`
 - **Database Table**: `digital_tray_products` with `skin_concern` and `regimen_step` enums.
@@ -82,6 +103,10 @@ You are an expert AI Full-Stack Developer and UI/UX Architect building the Asper
   - `tray` - Digital Tray API for skincare regimens
   - `beauty-assistant` - Dr. Rose AI chatbot
   - `bulk-product-upload` - Admin product management
+  - `capture-lead` - CRM lead capture from Dr. Rose chats
+- **Database Tables**:
+  - `digital_tray_products` - Curated products for 3-Click Solution
+  - `customer_leads` - CRM table for leads captured from Dr. Rose
 
 ## 7. FILE STRUCTURE CONVENTIONS
 - **Types**: `src/types/` for TypeScript type definitions

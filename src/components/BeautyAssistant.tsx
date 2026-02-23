@@ -1,16 +1,20 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Send, Loader2, Heart, ShoppingBag, MessageCircle } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { X, Send, Heart, ShoppingBag, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useCartStore } from '@/stores/cartStore';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://rgehleqcubtmcwyipyvi.supabase.co";
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 const CHAT_URL = `${SUPABASE_URL}/functions/v1/beauty-assistant`;
+const LEAD_CAPTURE_URL = `${SUPABASE_URL}/functions/v1/capture-lead`;
+
+// Regex patterns for lead detection
+const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+const JORDANIAN_PHONE_REGEX = /(\+962|00962|0)?(7[789]\d{7})/;
 
 const RoseIcon = ({ className }: { className?: string }) => (
   <span className={className} role="img" aria-label="rose">🌹</span>
@@ -27,6 +31,7 @@ const translations = {
     tellMore: 'Tell me more 🤔',
     buildRoutine: 'Build my routine ✨',
     viewBestsellers: 'Show bestsellers 🌟',
+    saveRoutine: 'Save my routine 📱',
   },
   ar: {
     name: 'د. روز',
@@ -38,6 +43,7 @@ const translations = {
     tellMore: 'احكيلي أكثر 🤔',
     buildRoutine: 'جهزيلي روتين ✨',
     viewBestsellers: 'أريني الأكثر مبيعاً 🌟',
+    saveRoutine: 'احفظيلي الروتين 📱',
   },
 };
 
@@ -60,7 +66,6 @@ const quickPrompts = {
   ],
 };
 
-// Detect if text is primarily Arabic
 function isArabicText(text: string): boolean {
   const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/;
   const arabicChars = (text.match(arabicPattern) || []).length;
@@ -68,12 +73,24 @@ function isArabicText(text: string): boolean {
   return totalChars > 0 && arabicChars / totalChars > 0.3;
 }
 
-// Detect suggestion triggers in the message
+function detectContactInfo(text: string): { type: 'email' | 'phone'; value: string } | null {
+  const emailMatch = text.match(EMAIL_REGEX);
+  if (emailMatch) {
+    return { type: 'email', value: emailMatch[0] };
+  }
+  
+  const phoneMatch = text.replace(/\s/g, '').match(JORDANIAN_PHONE_REGEX);
+  if (phoneMatch) {
+    return { type: 'phone', value: phoneMatch[0] };
+  }
+  
+  return null;
+}
+
 function detectSuggestionTriggers(content: string): string[] {
   const triggers: string[] = [];
   const lowerContent = content.toLowerCase();
   
-  // Cart action triggers
   if (
     lowerContent.includes('add these to your cart') ||
     lowerContent.includes('add to cart') ||
@@ -84,7 +101,6 @@ function detectSuggestionTriggers(content: string): string[] {
     triggers.push('cart');
   }
   
-  // More info triggers
   if (
     lowerContent.includes('tell you more') ||
     lowerContent.includes('would you like to know more') ||
@@ -94,7 +110,6 @@ function detectSuggestionTriggers(content: string): string[] {
     triggers.push('info');
   }
   
-  // Routine building triggers
   if (
     lowerContent.includes('build your complete routine') ||
     lowerContent.includes('shall i build') ||
@@ -104,13 +119,25 @@ function detectSuggestionTriggers(content: string): string[] {
     triggers.push('routine');
   }
   
-  // Bestsellers trigger
   if (
     lowerContent.includes('best sellers') ||
     lowerContent.includes('bestsellers') ||
     lowerContent.includes('الأكثر مبيعاً')
   ) {
     triggers.push('bestsellers');
+  }
+  
+  // Lead capture triggers - when Dr. Rose offers to save routine
+  if (
+    lowerContent.includes('save this digital tray') ||
+    lowerContent.includes('send it to your whatsapp') ||
+    lowerContent.includes('send it to your email') ||
+    lowerContent.includes('أحفظلك') ||
+    lowerContent.includes('أبعتلك الروابط') ||
+    lowerContent.includes('اكتبيلي رقمك') ||
+    lowerContent.includes('type your number')
+  ) {
+    triggers.push('saveRoutine');
   }
   
   return triggers;
@@ -147,6 +174,11 @@ function SuggestionChips({ triggers, onSelect, isArabic, t }: SuggestionChipsPro
       message: isArabic ? 'أريني الأكثر مبيعاً' : 'Show me the bestsellers',
       icon: <span>🌟</span>,
     },
+    saveRoutine: {
+      label: t.saveRoutine,
+      message: isArabic ? 'نعم، احفظيلي الروتين!' : 'Yes, please save my routine!',
+      icon: <span>📱</span>,
+    },
   };
   
   return (
@@ -180,13 +212,49 @@ export const BeautyAssistant = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Track captured leads to avoid duplicate captures
+  const capturedContactsRef = useRef<Set<string>>(new Set());
 
-  // Get suggestion triggers for the last assistant message
   const lastMessageTriggers = useMemo(() => {
     const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
     if (!lastAssistantMsg || messages[messages.length - 1]?.role === 'user') return [];
     return detectSuggestionTriggers(lastAssistantMsg.content);
   }, [messages]);
+
+  // Silent lead capture function - runs in background without interrupting chat
+  const captureLead = useCallback(async (contactInfo: { type: 'email' | 'phone'; value: string }, chatHistory: Message[]) => {
+    // Don't capture if already captured this contact
+    if (capturedContactsRef.current.has(contactInfo.value)) {
+      return;
+    }
+    
+    try {
+      capturedContactsRef.current.add(contactInfo.value);
+      
+      const response = await fetch(LEAD_CAPTURE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+        },
+        body: JSON.stringify({
+          contact_type: contactInfo.type,
+          contact_value: contactInfo.value,
+          chat_history: chatHistory.map(m => ({ role: m.role, content: m.content })),
+          source: 'dr_rose_chat',
+        }),
+      });
+      
+      if (response.ok) {
+        console.log(`Lead captured silently: ${contactInfo.type}`);
+      }
+    } catch (error) {
+      // Silent failure - don't interrupt user experience
+      console.error('Silent lead capture failed:', error);
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -265,11 +333,19 @@ export const BeautyAssistant = () => {
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
+    // Check for contact info BEFORE sending - capture lead silently
+    const contactInfo = detectContactInfo(text);
+    
     const userMsg: Message = { role: 'user', content: text.trim() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput('');
     setIsLoading(true);
+
+    // If contact info detected, capture lead in background
+    if (contactInfo) {
+      captureLead(contactInfo, newMessages);
+    }
 
     try {
       await streamChat(newMessages.filter(m => m.content !== t.welcome));
