@@ -18,32 +18,34 @@ const RoseIcon = ({ className }: { className?: string }) => (
 const translations = {
   en: {
     name: 'Dr. Rose',
-    title: 'Beauty Pharmacist',
-    welcome: "Hello! I'm Dr. Rose, your beauty pharmacist at Asper Beauty 🌹 Whether you need clinical skincare advice, makeup tips, or help building your perfect routine — I'm here for you! What's on your mind today?",
-    placeholder: 'Ask Dr. Rose anything about beauty...',
+    title: 'Aesthetic & Clinical Consultant',
+    welcome: "Hello! I'm Dr. Rose, your personal beauty and skincare consultant at Asper Beauty 🌹 I combine clinical expertise with a passion for making you feel confident and radiant. Tell me — what's your biggest skin concern right now, or what beauty goal are you working toward?",
+    placeholder: 'Tell Dr. Rose about your skin or beauty goal...',
     buttonText: 'Dr. Rose 🌹',
   },
   ar: {
     name: 'د. روز',
-    title: 'صيدلانية التجميل',
-    welcome: "أهلاً! أنا د. روز، صيدلانية التجميل في آسبر بيوتي 🌹 سواء كنتِ تحتاجين نصيحة طبية للبشرة، نصائح مكياج، أو مساعدة في بناء روتينك المثالي — أنا هنا لمساعدتك! شو بتحبي تسألي اليوم؟",
-    placeholder: 'اسألي د. روز عن الجمال...',
+    title: 'استشارية الجمال والبشرة',
+    welcome: "أهلاً! أنا د. روز، مستشارتك الشخصية للجمال والعناية بالبشرة في آسبر بيوتي 🌹 أجمع بين الخبرة الطبية وشغف الجمال عشان أساعدك تحسي بالثقة والإشراق. خبريني — شو أكبر مشكلة ببشرتك حالياً، أو شو هدفك الجمالي؟",
+    placeholder: 'خبري د. روز عن بشرتك أو هدفك الجمالي...',
     buttonText: 'د. روز 🌹',
   },
 };
 
 const quickPrompts = {
   en: [
-    { label: 'Skincare Routine', message: 'I want a complete skincare routine for my skin type. Can you help?' },
-    { label: 'Acne Help', message: 'I have acne-prone skin. What products do you recommend from your pharmacy?' },
-    { label: 'Makeup Tips ✨', message: 'What is a quick everyday makeup look for work?' },
-    { label: 'Anti-Aging', message: 'I want to start an anti-aging routine. What ingredients should I look for?' },
+    { label: 'Build My Routine', message: 'I want you to build me a complete skincare routine. Where do we start?' },
+    { label: 'Acne & Breakouts', message: "I've been struggling with acne and breakouts. It's really affecting my confidence. Can you help?" },
+    { label: 'Glass Skin ✨', message: 'I want that glass skin glow! What products and steps do I need?' },
+    { label: 'Anti-Aging Plan', message: "I'm starting to see fine lines and want to prevent aging. What's the best approach?" },
+    { label: 'Gift Ideas 🎁', message: "I need a beauty gift set for someone special. What do you recommend?" },
   ],
   ar: [
-    { label: 'روتين بشرة', message: 'أريد روتين عناية كامل لنوع بشرتي. ممكن تساعديني؟' },
-    { label: 'علاج حب الشباب', message: 'بشرتي معرضة لحب الشباب. ما المنتجات اللي تنصحيني فيها؟' },
-    { label: 'نصائح مكياج ✨', message: 'ما هو مكياج يومي سريع للعمل؟' },
-    { label: 'مكافحة الشيخوخة', message: 'أريد أبدأ روتين مكافحة شيخوخة. ما المكونات المهمة؟' },
+    { label: 'ابني روتيني', message: 'أبي تبنيلي روتين عناية كامل بالبشرة. من وين نبدأ؟' },
+    { label: 'حب الشباب', message: 'عندي مشكلة حب شباب وبثور. حقيقي مأثرة على ثقتي. ممكن تساعديني؟' },
+    { label: 'بشرة زجاجية ✨', message: 'أبي بشرة زجاجية مشرقة! شو المنتجات والخطوات اللي أحتاجها؟' },
+    { label: 'مكافحة التجاعيد', message: 'بديت ألاحظ خطوط رفيعة وأبي أمنع الشيخوخة. شو أفضل طريقة؟' },
+    { label: 'أفكار هدايا 🎁', message: 'أحتاج مجموعة هدية جمال لشخص مميز. شو تنصحيني؟' },
   ],
 };
 
