@@ -22,6 +22,18 @@ echo ""
 echo "📦 Deploying Edge Functions..."
 echo "------------------------------"
 
+# Deploy Dr. Rose omnichannel gateway
+echo "  → Deploying 'dr-rose-gateway' function..."
+npx supabase functions deploy dr-rose-gateway --project-ref $PROJECT_REF
+
+# Deploy Meta (IG/FB Messenger) webhook
+echo "  → Deploying 'meta-webhook' function..."
+npx supabase functions deploy meta-webhook --project-ref $PROJECT_REF
+
+# Deploy WhatsApp webhook
+echo "  → Deploying 'whatsapp-webhook' function..."
+npx supabase functions deploy whatsapp-webhook --project-ref $PROJECT_REF
+
 # Deploy tray function
 echo "  → Deploying 'tray' function..."
 npx supabase functions deploy tray --project-ref $PROJECT_REF

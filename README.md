@@ -115,6 +115,15 @@ The app supports:
 
 Language switching is available in the header.
 
+## 🤖 Dr. Rose (AI Concierge) — Omnichannel
+
+Dr. Rose is deployed via Supabase Edge Functions and can be connected to:
+- Website chat widget
+- Instagram / Facebook Messenger (Meta webhooks)
+- WhatsApp Cloud API
+
+Setup instructions: `docs/dr-rose-omnichannel.md`
+
 ## 🔧 Development
 
 This project is built with [Lovable](https://lovable.dev). You can:
