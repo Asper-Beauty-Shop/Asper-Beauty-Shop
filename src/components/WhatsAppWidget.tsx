@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { MessageCircle, X, Send, Instagram, Facebook } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-
-const WHATSAPP_NUMBER = "962790656666";
-const INSTAGRAM_URL = "https://www.instagram.com/asper.beauty.shop/";
-const FACEBOOK_URL = "https://www.facebook.com/robu.sweileh";
+import {
+  WHATSAPP_NUMBER,
+  INSTAGRAM_URL,
+  FACEBOOK_URL,
+  TIKTOK_URL,
+} from "@/lib/channels";
 
 const TikTokIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -79,8 +81,8 @@ export const WhatsAppWidget = () => {
             <div className="bg-white rounded-lg p-3 shadow-sm">
               <p className="text-sm font-body text-foreground">
                 {isArabic
-                  ? "مرحباً! 👋 كيف يمكننا مساعدتك؟ اختر موضوعاً أو راسلنا مباشرة."
-                  : "Hi there! 👋 How can we help you? Choose a topic or message us directly."}
+                  ? "مرحباً! 👋 أنا د. روز، مستشارتك الرقمية! راسلينا عبر الواتساب أو اختاري موضوع 🌹"
+                  : "Hi there! 👋 I'm Dr. Rose, your Digital Concierge! Message us on WhatsApp or pick a topic 🌹"}
               </p>
             </div>
           </div>
@@ -119,7 +121,7 @@ export const WhatsAppWidget = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-[#1877F2] text-white flex items-center justify-center hover:scale-110 transition-transform"
-                aria-label="Facebook Messenger"
+                aria-label="Facebook"
               >
                 <Facebook className="w-4 h-4" />
               </a>
@@ -133,7 +135,7 @@ export const WhatsAppWidget = () => {
                 <MessageCircle className="w-4 h-4" />
               </a>
               <a
-                href="https://www.tiktok.com/@asper.beauty.shop"
+                href={TIKTOK_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center hover:scale-110 transition-transform"

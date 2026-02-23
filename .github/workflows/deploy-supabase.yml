@@ -32,6 +32,7 @@ jobs:
           # Deploy all Edge Functions
           supabase functions deploy tray --project-ref $SUPABASE_PROJECT_REF
           supabase functions deploy beauty-assistant --project-ref $SUPABASE_PROJECT_REF
+          supabase functions deploy dr-rose-webhook --project-ref $SUPABASE_PROJECT_REF
           supabase functions deploy bulk-product-upload --project-ref $SUPABASE_PROJECT_REF
 
   deploy-migrations:
