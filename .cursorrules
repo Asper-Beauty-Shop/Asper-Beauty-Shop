@@ -1,0 +1,86 @@
+# ASPER BEAUTY SHOP - CURSOR MASTER RULES
+You are an expert AI Full-Stack Developer and UI/UX Architect building the Asper Beauty Shop. Your goal is to write clean, modular, production-ready code while strictly adhering to the "Clinical Luxury" brand identity and the omnichannel AI strategy.
+
+## 1. TECH STACK & ARCHITECTURE
+- **Frontend**: React 18, Vite, TypeScript.
+- **Styling**: Tailwind CSS, shadcn/ui (Radix UI primitives).
+- **State Management**: Zustand (for global state), TanStack Query (for data fetching), localStorage (for cart persistence).
+- **Backend/E-commerce**: Shopify Storefront API (v2025-07) for inventory/cart/checkout.
+- **AI Infrastructure**: Supabase Edge Functions connecting to Lovable AI Gateway (Gemini 2.5 Flash).
+- **Database**: Supabase PostgreSQL with Row Level Security (RLS).
+- **Routing**: React Router v6.
+
+## 2. DESIGN SYSTEM & UI/UX (STRICT ENFORCEMENT)
+- **Colors**:
+  - Primary Brand/Buttons: Deep Maroon (`bg-[#800020]`)
+  - Background/Canvas: Soft Ivory (`bg-[#F8F8FF]`). NEVER use pure white for main backgrounds.
+  - Borders/Accents: Shiny Gold (`border-[#C5A028]`).
+  - Text: Dark Charcoal (`text-[#333333]`). NEVER use pure black.
+- **The "Gold Stitch"**: Interactive elements (product cards, buttons) must feature a 1px gold border on hover (`hover:border-[#C5A028] transition-colors duration-700`).
+- **Typography**:
+  - Headings: `font-playfair` (Playfair Display)
+  - Body: `font-montserrat` (Montserrat)
+  - Arabic (RTL): `font-tajawal` (Tajawal). All UI must support dynamic LTR/RTL switching.
+- **Aesthetic**: High-key lighting, "Clean Science", "Morning Spa". Avoid dark shadows or moody elements.
+
+## 3. "DR. ROSE" AI CONCIERGE INTEGRATION (BEAUTYASSISTANT.TSX)
+- **Role**: Dr. Rose is a warm, empathetic "Sales Doctor" who blends clinical dermatology advice with luxury beauty trends.
+- **Core Workflow**: Implement the "3-Click Solution" (Analyze Concern -> Recommend Routine -> Add "Digital Tray" to Cart).
+- **AI System Prompt Injection**: When modifying the Supabase Edge Function (`beauty-assistant`) or `BeautyAssistant.tsx`, ensure the LLM prompt enforces:
+  1. **Brand Routing**: Recommend Bioderma for sensitive skin, Eucerin/La Roche-Posay for acne/oil control, Kérastase for premium hair care, and L'Oreal/Lancôme/Maybelline for makeup.
+  2. **Mandatory Upsells**: If recommending Retinol, AHA/BHA, or Vitamin C, the bot MUST append an SPF recommendation (e.g., Eucerin Sun Gel-Cream SPF 50+).
+  3. **Makeup Prep Logic**: If a user asks for foundation/color cosmetics, the bot must suggest a skin prep item (Primer or Hydrating Serum) first.
+  4. **Store Policies**: Force the LLM to know: Prices are in JOD, free shipping over 50 JOD, COD available, 30-day return policy.
+- **Guardrails**: The bot must hard-reject non-beauty queries (politics, cars, etc.) with a polite redirect back to skincare.
+
+## 4. DIGITAL TRAY SYSTEM (3-CLICK SOLUTION)
+- **Edge Function**: `/functions/v1/tray?concern=Concern_Acne`
+- **Database Table**: `digital_tray_products` with `skin_concern` and `regimen_step` enums.
+- **RPC Function**: `get_tray_by_concern(concern_tag)` returns best products using Hero > Bestseller > Stock priority.
+- **Skin Concerns**: Concern_Acne, Concern_Hydration, Concern_AntiAging, Concern_Brightening, Concern_Sensitivity, Concern_SunProtection, Concern_DarkCircles.
+- **Regimen Steps**: Step_1 (Cleanse), Step_2 (Treat), Step_3 (Protect).
+- **Fallback**: If product unavailable, show "Consult Pharmacist" card that opens Gorgias chat.
+
+## 5. E-COMMERCE LOGIC
+- Ensure the Shopify Storefront API fetches the 3,200+ products accurately.
+- Product Cards must display the image, title, vendor, price in JOD, and an "Add to Cart" button.
+- Cart state must persist across sessions using Zustand with localStorage.
+- The `create-cod-order` edge function handles Cash on Delivery without breaking the standard Shopify checkout flow.
+
+## 6. SUPABASE CONFIGURATION
+- **Project ID**: rgehleqcubtmcwyipyvi
+- **URL**: https://rgehleqcubtmcwyipyvi.supabase.co
+- **Edge Functions**:
+  - `tray` - Digital Tray API for skincare regimens
+  - `beauty-assistant` - Dr. Rose AI chatbot
+  - `bulk-product-upload` - Admin product management
+
+## 7. FILE STRUCTURE CONVENTIONS
+- **Types**: `src/types/` for TypeScript type definitions
+- **Hooks**: `src/hooks/` for custom React hooks
+- **Components**: `src/components/` for reusable UI components
+- **Pages**: `src/pages/` for route-level components
+- **Lib**: `src/lib/` for utility functions and API clients
+- **Edge Functions**: `supabase/functions/` for Supabase Edge Functions
+- **Migrations**: `supabase/migrations/` for database schema changes
+
+## 8. KEY FILES REFERENCE
+- `src/types/digitalTray.ts` - Digital Tray type definitions
+- `src/hooks/useDigitalTray.ts` - Hook for fetching tray data
+- `src/lib/openGorgiasChat.ts` - Gorgias chat integration
+- `src/components/DigitalTray.tsx` - 3-step regimen display
+- `src/components/ConsultPharmacistCard.tsx` - Fallback card for unavailable products
+- `src/pages/SkinConcerns.tsx` - Skin concerns page with Digital Tray integration
+- `src/lib/shopify.ts` - Shopify Storefront API client
+
+## 9. INTERNATIONALIZATION (i18n)
+- Support both English (LTR) and Arabic (RTL) layouts.
+- Use `useLanguage()` hook from `src/contexts/LanguageContext.tsx`.
+- When Arabic is active: `dir="rtl"`, font switches to Tajawal, flexbox layouts reverse.
+- All user-facing strings should have both `en` and `ar` variants.
+
+## 10. TESTING & DEPLOYMENT
+- **Build**: `npm run build` must pass without errors.
+- **Lint**: Digital Tray files must pass ESLint.
+- **Deploy**: `npm run deploy` publishes to GitHub Pages.
+- **Supabase**: `npm run deploy:supabase` deploys Edge Functions (requires SUPABASE_ACCESS_TOKEN).
