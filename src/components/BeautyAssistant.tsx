@@ -18,34 +18,36 @@ const RoseIcon = ({ className }: { className?: string }) => (
 const translations = {
   en: {
     name: 'Dr. Rose',
-    title: 'Aesthetic & Clinical Consultant',
-    welcome: "Hello! I'm Dr. Rose, your personal beauty and skincare consultant at Asper Beauty 🌹 I combine clinical expertise with a passion for making you feel confident and radiant. Tell me — what's your biggest skin concern right now, or what beauty goal are you working toward?",
-    placeholder: 'Tell Dr. Rose about your skin or beauty goal...',
+    title: 'Digital Concierge',
+    welcome: "Welcome to Asper Beauty — The Sanctuary of Science 🌹 I'm Dr. Rose, your personal beauty concierge. I blend clinical expertise with luxury beauty to craft your perfect regimen from our 4,000+ curated products.\n\nLet's begin your 3-Click Solution — what's your primary skin concern today?",
+    placeholder: 'Tell Dr. Rose your skin concern...',
     buttonText: 'Dr. Rose 🌹',
   },
   ar: {
     name: 'د. روز',
-    title: 'استشارية الجمال والبشرة',
-    welcome: "أهلاً! أنا د. روز، مستشارتك الشخصية للجمال والعناية بالبشرة في آسبر بيوتي 🌹 أجمع بين الخبرة الطبية وشغف الجمال عشان أساعدك تحسي بالثقة والإشراق. خبريني — شو أكبر مشكلة ببشرتك حالياً، أو شو هدفك الجمالي؟",
-    placeholder: 'خبري د. روز عن بشرتك أو هدفك الجمالي...',
+    title: 'المستشارة الرقمية',
+    welcome: "أهلاً بك في آسبر بيوتي — ملاذ العلم والجمال 🌹 أنا د. روز، مستشارتك الشخصية للجمال. أجمع الخبرة الطبية مع الجمال الفاخر لأصمم لك روتينك المثالي من أكثر من 4,000 منتج.\n\nيلا نبدأ حلّك بـ3 خطوات — شو مشكلة بشرتك الرئيسية اليوم؟",
+    placeholder: 'خبري د. روز عن مشكلة بشرتك...',
     buttonText: 'د. روز 🌹',
   },
 };
 
 const quickPrompts = {
   en: [
-    { label: 'Build My Routine', message: 'I want you to build me a complete skincare routine. Where do we start?' },
-    { label: 'Acne & Breakouts', message: "I've been struggling with acne and breakouts. It's really affecting my confidence. Can you help?" },
-    { label: 'Glass Skin ✨', message: 'I want that glass skin glow! What products and steps do I need?' },
-    { label: 'Anti-Aging Plan', message: "I'm starting to see fine lines and want to prevent aging. What's the best approach?" },
-    { label: 'Gift Ideas 🎁', message: "I need a beauty gift set for someone special. What do you recommend?" },
+    { label: '🔴 Acne & Blemishes', message: "I've been struggling with acne and blemishes. It's really affecting my confidence." },
+    { label: '⏳ Anti-Aging', message: "I'm noticing fine lines and wrinkles. I want to start a proper anti-aging regimen." },
+    { label: '💧 Dryness & Hydration', message: "My skin feels very dry and dehydrated. I need deep hydration." },
+    { label: '🌸 Sensitivity & Redness', message: "My skin is very sensitive and gets red easily. Most products irritate me." },
+    { label: '✨ Glass Skin Glow', message: "I want that glass skin glow look! Build me a full routine." },
+    { label: '🎁 Gift Recommendation', message: "I need a beauty gift set for someone special. What do you recommend?" },
   ],
   ar: [
-    { label: 'ابني روتيني', message: 'أبي تبنيلي روتين عناية كامل بالبشرة. من وين نبدأ؟' },
-    { label: 'حب الشباب', message: 'عندي مشكلة حب شباب وبثور. حقيقي مأثرة على ثقتي. ممكن تساعديني؟' },
-    { label: 'بشرة زجاجية ✨', message: 'أبي بشرة زجاجية مشرقة! شو المنتجات والخطوات اللي أحتاجها؟' },
-    { label: 'مكافحة التجاعيد', message: 'بديت ألاحظ خطوط رفيعة وأبي أمنع الشيخوخة. شو أفضل طريقة؟' },
-    { label: 'أفكار هدايا 🎁', message: 'أحتاج مجموعة هدية جمال لشخص مميز. شو تنصحيني؟' },
+    { label: '🔴 حب الشباب', message: 'عندي مشكلة حب شباب وبثور. مأثرة على ثقتي كثير.' },
+    { label: '⏳ مكافحة التجاعيد', message: 'بديت ألاحظ خطوط وتجاعيد. أبي أبدأ روتين مكافحة شيخوخة.' },
+    { label: '💧 جفاف وترطيب', message: 'بشرتي جافة ومجففة كثير. أحتاج ترطيب عميق.' },
+    { label: '🌸 حساسية واحمرار', message: 'بشرتي حساسة وتحمر بسرعة. أغلب المنتجات تهيجها.' },
+    { label: '✨ بشرة زجاجية', message: 'أبي بشرة زجاجية مشرقة! ابنيلي روتين كامل.' },
+    { label: '🎁 هدية جمالية', message: 'أحتاج مجموعة هدية جمال لشخص مميز. شو تنصحيني؟' },
   ],
 };
 
