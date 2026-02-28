@@ -1,20 +1,17 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { X, Send, Heart, ShoppingBag, MessageCircle } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Send, Loader2, Heart, Instagram, Facebook, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { INSTAGRAM_URL, FACEBOOK_URL, TIKTOK_URL, WHATSAPP_NUMBER } from '@/lib/channels';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://rgehleqcubtmcwyipyvi.supabase.co";
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 const CHAT_URL = `${SUPABASE_URL}/functions/v1/beauty-assistant`;
-const LEAD_CAPTURE_URL = `${SUPABASE_URL}/functions/v1/capture-lead`;
-
-// Regex patterns for lead detection
-const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-const JORDANIAN_PHONE_REGEX = /(\+962|00962|0)?(7[789]\d{7})/;
+const CHANNEL = 'website';
 
 const RoseIcon = ({ className }: { className?: string }) => (
   <span className={className} role="img" aria-label="rose">🌹</span>
@@ -276,7 +273,7 @@ export const BeautyAssistant = () => {
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${SUPABASE_KEY}`,
       },
-      body: JSON.stringify({ messages: userMessages }),
+      body: JSON.stringify({ messages: userMessages, channel: CHANNEL }),
     });
 
     if (!resp.ok || !resp.body) {
@@ -513,10 +510,23 @@ export const BeautyAssistant = () => {
               <Send className="w-4 h-4 text-white" />
             </Button>
           </form>
-          <p className="text-[10px] text-center text-muted-foreground mt-2 font-body flex items-center justify-center gap-1">
-            <Heart className="w-3 h-3 text-pink-400" />
-            {isArabic ? 'بواسطة آسبر بيوتي' : 'Powered by Asper Beauty'}
-          </p>
+          <div className="mt-2 flex items-center justify-center gap-2">
+            <p className="text-[10px] text-muted-foreground font-body flex items-center gap-1">
+              <Heart className="w-3 h-3 text-pink-400" />
+              {isArabic ? 'تجدني أيضاً على' : 'Also find me on'}
+            </p>
+            <div className="flex items-center gap-1.5">
+              <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" className="w-5 h-5 rounded-full bg-[#25D366] flex items-center justify-center hover:scale-110 transition-transform" aria-label="WhatsApp">
+                <MessageCircle className="w-3 h-3 text-white" />
+              </a>
+              <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 flex items-center justify-center hover:scale-110 transition-transform" aria-label="Instagram">
+                <Instagram className="w-3 h-3 text-white" />
+              </a>
+              <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="w-5 h-5 rounded-full bg-[#1877F2] flex items-center justify-center hover:scale-110 transition-transform" aria-label="Facebook">
+                <Facebook className="w-3 h-3 text-white" />
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </>
