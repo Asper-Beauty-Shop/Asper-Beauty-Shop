@@ -9,7 +9,7 @@ import { INSTAGRAM_URL, FACEBOOK_URL, TIKTOK_URL, WHATSAPP_NUMBER } from '@/lib/
 type Message = { role: 'user' | 'assistant'; content: string };
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://rgehleqcubtmcwyipyvi.supabase.co";
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJnZWhsZXFjdWJ0bWN3eWlweXZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4NDM5MDEsImV4cCI6MjA4MzQxOTkwMX0.8BEpVzIvWc2do2v8v3pOP3txcTs52HsM4F7KVavlQNU";
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 const CHAT_URL = `${SUPABASE_URL}/functions/v1/beauty-assistant`;
 const CHANNEL = 'website';
 
@@ -24,6 +24,11 @@ const translations = {
     welcome: "Welcome to Asper Beauty — The Sanctuary of Science 🌹 I'm Dr. Rose, your personal beauty concierge. I blend clinical expertise with luxury beauty to craft your perfect regimen from our 4,000+ curated products.\n\nLet's begin your 3-Click Solution — what's your primary skin concern today?",
     placeholder: 'Tell Dr. Rose your skin concern...',
     buttonText: 'Dr. Rose 🌹',
+    addToCart: 'Yes, add to cart! 🛍️',
+    tellMore: 'Tell me more 🤔',
+    buildRoutine: 'Build my routine ✨',
+    viewBestsellers: 'Show bestsellers 🌟',
+    saveRoutine: 'Save my routine 📱',
   },
   ar: {
     name: 'د. روز',
@@ -31,6 +36,11 @@ const translations = {
     welcome: "أهلاً بك في آسبر بيوتي — ملاذ العلم والجمال 🌹 أنا د. روز، مستشارتك الشخصية للجمال. أجمع الخبرة الطبية مع الجمال الفاخر لأصمم لك روتينك المثالي من أكثر من 4,000 منتج.\n\nيلا نبدأ حلّك بـ3 خطوات — شو مشكلة بشرتك الرئيسية اليوم؟",
     placeholder: 'خبري د. روز عن مشكلة بشرتك...',
     buttonText: 'د. روز 🌹',
+    addToCart: 'نعم، أضف للسلة! 🛍️',
+    tellMore: 'احكيلي أكثر 🤔',
+    buildRoutine: 'جهزيلي روتين ✨',
+    viewBestsellers: 'أريني الأكثر مبيعاً 🌟',
+    saveRoutine: 'احفظيلي الروتين 📱',
   },
 };
 
@@ -53,6 +63,141 @@ const quickPrompts = {
   ],
 };
 
+function isArabicText(text: string): boolean {
+  const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/;
+  const arabicChars = (text.match(arabicPattern) || []).length;
+  const totalChars = text.replace(/\s/g, '').length;
+  return totalChars > 0 && arabicChars / totalChars > 0.3;
+}
+
+function detectContactInfo(text: string): { type: 'email' | 'phone'; value: string } | null {
+  const emailMatch = text.match(EMAIL_REGEX);
+  if (emailMatch) {
+    return { type: 'email', value: emailMatch[0] };
+  }
+  
+  const phoneMatch = text.replace(/\s/g, '').match(JORDANIAN_PHONE_REGEX);
+  if (phoneMatch) {
+    return { type: 'phone', value: phoneMatch[0] };
+  }
+  
+  return null;
+}
+
+function detectSuggestionTriggers(content: string): string[] {
+  const triggers: string[] = [];
+  const lowerContent = content.toLowerCase();
+  
+  if (
+    lowerContent.includes('add these to your cart') ||
+    lowerContent.includes('add to cart') ||
+    lowerContent.includes('أضيفهم لسلتك') ||
+    lowerContent.includes('بدك أضيفهم') ||
+    lowerContent.includes('shall i prepare your digital tray')
+  ) {
+    triggers.push('cart');
+  }
+  
+  if (
+    lowerContent.includes('tell you more') ||
+    lowerContent.includes('would you like to know more') ||
+    lowerContent.includes('احكيلك أكثر') ||
+    lowerContent.includes('بدك احكيلك')
+  ) {
+    triggers.push('info');
+  }
+  
+  if (
+    lowerContent.includes('build your complete routine') ||
+    lowerContent.includes('shall i build') ||
+    lowerContent.includes('أجهزلك روتين') ||
+    lowerContent.includes('بدك أجهزلك')
+  ) {
+    triggers.push('routine');
+  }
+  
+  if (
+    lowerContent.includes('best sellers') ||
+    lowerContent.includes('bestsellers') ||
+    lowerContent.includes('الأكثر مبيعاً')
+  ) {
+    triggers.push('bestsellers');
+  }
+  
+  // Lead capture triggers - when Dr. Rose offers to save routine
+  if (
+    lowerContent.includes('save this digital tray') ||
+    lowerContent.includes('send it to your whatsapp') ||
+    lowerContent.includes('send it to your email') ||
+    lowerContent.includes('أحفظلك') ||
+    lowerContent.includes('أبعتلك الروابط') ||
+    lowerContent.includes('اكتبيلي رقمك') ||
+    lowerContent.includes('type your number')
+  ) {
+    triggers.push('saveRoutine');
+  }
+  
+  return triggers;
+}
+
+interface SuggestionChipsProps {
+  triggers: string[];
+  onSelect: (message: string) => void;
+  isArabic: boolean;
+  t: typeof translations['en'];
+}
+
+function SuggestionChips({ triggers, onSelect, isArabic, t }: SuggestionChipsProps) {
+  if (triggers.length === 0) return null;
+  
+  const chipConfig: Record<string, { label: string; message: string; icon: React.ReactNode }> = {
+    cart: {
+      label: t.addToCart,
+      message: isArabic ? 'نعم، أضيفيهم لسلتي!' : 'Yes, please add them to my cart!',
+      icon: <ShoppingBag className="w-3.5 h-3.5" />,
+    },
+    info: {
+      label: t.tellMore,
+      message: isArabic ? 'احكيلي أكثر عنه' : 'Tell me more about it',
+      icon: <MessageCircle className="w-3.5 h-3.5" />,
+    },
+    routine: {
+      label: t.buildRoutine,
+      message: isArabic ? 'نعم، جهزيلي روتين كامل!' : 'Yes, build my complete routine!',
+      icon: <span>✨</span>,
+    },
+    bestsellers: {
+      label: t.viewBestsellers,
+      message: isArabic ? 'أريني الأكثر مبيعاً' : 'Show me the bestsellers',
+      icon: <span>🌟</span>,
+    },
+    saveRoutine: {
+      label: t.saveRoutine,
+      message: isArabic ? 'نعم، احفظيلي الروتين!' : 'Yes, please save my routine!',
+      icon: <span>📱</span>,
+    },
+  };
+  
+  return (
+    <div className={`flex flex-wrap gap-2 mt-3 ${isArabic ? 'justify-end' : 'justify-start'}`}>
+      {triggers.map((trigger) => {
+        const config = chipConfig[trigger];
+        if (!config) return null;
+        return (
+          <button
+            key={trigger}
+            onClick={() => onSelect(config.message)}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-body bg-gradient-to-r from-burgundy to-pink-700 text-white rounded-full hover:opacity-90 transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105"
+          >
+            {config.icon}
+            <span>{config.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export const BeautyAssistant = () => {
   const { language, isRTL } = useLanguage();
   const isArabic = language === 'ar';
@@ -64,6 +209,49 @@ export const BeautyAssistant = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Track captured leads to avoid duplicate captures
+  const capturedContactsRef = useRef<Set<string>>(new Set());
+
+  const lastMessageTriggers = useMemo(() => {
+    const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
+    if (!lastAssistantMsg || messages[messages.length - 1]?.role === 'user') return [];
+    return detectSuggestionTriggers(lastAssistantMsg.content);
+  }, [messages]);
+
+  // Silent lead capture function - runs in background without interrupting chat
+  const captureLead = useCallback(async (contactInfo: { type: 'email' | 'phone'; value: string }, chatHistory: Message[]) => {
+    // Don't capture if already captured this contact
+    if (capturedContactsRef.current.has(contactInfo.value)) {
+      return;
+    }
+    
+    try {
+      capturedContactsRef.current.add(contactInfo.value);
+      
+      const response = await fetch(LEAD_CAPTURE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+        },
+        body: JSON.stringify({
+          contact_type: contactInfo.type,
+          contact_value: contactInfo.value,
+          chat_history: chatHistory.map(m => ({ role: m.role, content: m.content })),
+          source: 'dr_rose_chat',
+        }),
+      });
+      
+      if (response.ok) {
+        console.log(`Lead captured silently: ${contactInfo.type}`);
+      }
+    } catch (error) {
+      // Silent failure - don't interrupt user experience
+      console.error('Silent lead capture failed:', error);
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -142,11 +330,19 @@ export const BeautyAssistant = () => {
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
+    // Check for contact info BEFORE sending - capture lead silently
+    const contactInfo = detectContactInfo(text);
+    
     const userMsg: Message = { role: 'user', content: text.trim() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput('');
     setIsLoading(true);
+
+    // If contact info detected, capture lead in background
+    if (contactInfo) {
+      captureLead(contactInfo, newMessages);
+    }
 
     try {
       await streamChat(newMessages.filter(m => m.content !== t.welcome));
@@ -212,27 +408,50 @@ export const BeautyAssistant = () => {
         {/* Messages */}
         <ScrollArea className="h-[300px] p-4 bg-cream/30" ref={scrollRef}>
           <div className="space-y-4">
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-burgundy to-pink-700 flex items-center justify-center text-xs shrink-0 mr-2 mt-1">
-                    🌹
+            {messages.map((msg, idx) => {
+              const isAssistant = msg.role === 'assistant';
+              const msgIsArabic = isArabicText(msg.content);
+              const isLastAssistant = isAssistant && idx === messages.length - 1;
+              
+              return (
+                <div key={idx}>
+                  <div
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    dir={msgIsArabic ? 'rtl' : 'ltr'}
+                  >
+                    {isAssistant && (
+                      <div className={`w-7 h-7 rounded-full bg-gradient-to-br from-burgundy to-pink-700 flex items-center justify-center text-xs shrink-0 ${msgIsArabic ? 'ml-2' : 'mr-2'} mt-1`}>
+                        🌹
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                        msg.role === 'user'
+                          ? `bg-burgundy text-white ${msgIsArabic ? 'rounded-bl-sm' : 'rounded-br-sm'}`
+                          : `bg-white border border-gold/20 text-foreground ${msgIsArabic ? 'rounded-br-sm' : 'rounded-bl-sm'} shadow-sm`
+                      }`}
+                    >
+                      <p 
+                        className={`text-sm leading-relaxed whitespace-pre-wrap font-body ${msgIsArabic ? 'text-right' : 'text-left'}`}
+                        dir={msgIsArabic ? 'rtl' : 'ltr'}
+                      >
+                        {msg.content}
+                      </p>
+                    </div>
                   </div>
-                )}
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-                    msg.role === 'user'
-                      ? 'bg-burgundy text-white rounded-br-sm'
-                      : 'bg-white border border-gold/20 text-foreground rounded-bl-sm shadow-sm'
-                  }`}
-                >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap font-body">{msg.content}</p>
+                  
+                  {/* Smart Suggestion Chips - only show for the last assistant message */}
+                  {isLastAssistant && !isLoading && lastMessageTriggers.length > 0 && (
+                    <SuggestionChips
+                      triggers={lastMessageTriggers}
+                      onSelect={sendMessage}
+                      isArabic={msgIsArabic}
+                      t={t}
+                    />
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {isLoading && messages[messages.length - 1]?.role === 'user' && (
               <div className="flex justify-start">
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-burgundy to-pink-700 flex items-center justify-center text-xs shrink-0 mr-2 mt-1">
