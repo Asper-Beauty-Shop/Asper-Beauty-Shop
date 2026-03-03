@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Facebook, Instagram, MessageCircle } from "lucide-react";
+import { Facebook, Instagram, MessageCircle, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import asperLogo from "@/assets/asper-logo.jpg";
 
 // TikTok icon component
@@ -14,14 +16,57 @@ const TikTokIcon = ({
   </svg>;
 export const Footer = () => {
   const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const {
     language
   } = useLanguage();
   const isArabic = language === "ar";
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle newsletter signup
-    setEmail("");
+    
+    if (!email || !email.includes('@')) {
+      toast.error(isArabic ? 'يرجى إدخال بريد إلكتروني صحيح' : 'Please enter a valid email address');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('newsletter_subscribers')
+        .insert({
+          email: email.toLowerCase().trim(),
+          language: language,
+          source: 'footer'
+        });
+
+      if (error) {
+        // Check if it's a duplicate email error
+        if (error.code === '23505') {
+          toast.info(
+            isArabic ? 'أنت مشترك بالفعل!' : 'You are already subscribed!',
+            { description: isArabic ? 'هذا البريد الإلكتروني مسجل في قائمتنا' : 'This email is already on our list' }
+          );
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success(
+          isArabic ? 'شكراً لاشتراكك!' : 'Thank you for subscribing!',
+          { description: isArabic ? 'ستصلك آخر العروض والأخبار' : 'You will receive our latest offers and news' }
+        );
+      }
+      setEmail("");
+    } catch (error) {
+      console.error('Newsletter subscription error:', error);
+      toast.error(
+        isArabic ? 'حدث خطأ' : 'Something went wrong',
+        { description: isArabic ? 'يرجى المحاولة مرة أخرى لاحقاً' : 'Please try again later' }
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
   const conciergLinks = [{
     name: isArabic ? 'تتبع الطلب' : 'Track Order',
@@ -126,8 +171,20 @@ export const Footer = () => {
               {isArabic ? 'اكتشف الحصريات' : 'Unlock Exclusives'}
             </h3>
             <form onSubmit={handleSubmit} className="space-y-3">
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={isArabic ? 'بريدك الإلكتروني' : 'Your email'} className="w-full px-4 py-3 bg-transparent border border-white text-white font-body text-sm placeholder:text-white/50 focus:outline-none focus:border-gold transition-colors duration-400 rounded" />
-              <button type="submit" className="w-full px-6 py-3 bg-gold text-burgundy font-display text-sm tracking-wider hover:bg-gold-light transition-colors duration-400 rounded">
+              <input 
+                type="email" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                placeholder={isArabic ? 'بريدك الإلكتروني' : 'Your email'} 
+                className="w-full px-4 py-3 bg-transparent border border-white text-white font-body text-sm placeholder:text-white/50 focus:outline-none focus:border-gold transition-colors duration-400 rounded"
+                disabled={isLoading}
+              />
+              <button 
+                type="submit" 
+                className="w-full px-6 py-3 bg-gold text-burgundy font-display text-sm tracking-wider hover:bg-gold-light transition-colors duration-400 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                disabled={isLoading}
+              >
+                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {isArabic ? 'اشترك' : 'Subscribe'}
               </button>
             </form>
