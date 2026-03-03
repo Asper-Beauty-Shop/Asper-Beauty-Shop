@@ -220,12 +220,12 @@ const ProductDetail = () => {
             {/* Left Column - Image Gallery (Sticky) */}
             <div className="lg:sticky lg:top-[100px] lg:self-start lg:pr-8">
               {/* Main Image */}
-              <div className="relative aspect-square bg-white rounded-lg overflow-hidden mb-4 group">
+              <div className="relative aspect-square bg-cream rounded-lg overflow-hidden mb-4 group">
                 {images[selectedImage] ? (
                   <img
                     src={images[selectedImage].node.url}
                     alt={images[selectedImage].node.altText || product.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover mix-blend-multiply"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
@@ -248,7 +248,7 @@ const ProductDetail = () => {
                     <button
                       key={idx}
                       onClick={() => setSelectedImage(idx)}
-                      className={`aspect-square overflow-hidden rounded-lg border-2 transition-all duration-400 ${
+                      className={`aspect-square overflow-hidden rounded-lg border-2 transition-all duration-400 bg-cream ${
                         selectedImage === idx 
                           ? "border-gold ring-2 ring-gold ring-offset-2" 
                           : "border-transparent hover:border-gold/50"
@@ -257,7 +257,7 @@ const ProductDetail = () => {
                       <img
                         src={img.node.url}
                         alt={img.node.altText || `${product.title} ${idx + 1}`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover mix-blend-multiply"
                       />
                     </button>
                   ))}
