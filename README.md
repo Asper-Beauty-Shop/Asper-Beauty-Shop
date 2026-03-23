@@ -125,10 +125,49 @@ This project is built with [Lovable](https://lovable.dev). You can:
 
 Changes sync automatically between Lovable and GitHub.
 
+## 🤖 Prompt Library
+
+The `prompts/` directory contains a curated library of AI prompts for frontend development, design, and UX — all tailored to the Asper "Clinical Luxury" aesthetic.
+
+```
+prompts/
+├── accessibility/     # ARIA attributes, WCAG compliance
+├── animation/         # Micro-interactions, transitions
+├── components/        # React TypeScript components
+├── responsive/        # Mobile-first design
+├── ui-design/         # Design systems, brand methodology
+├── ux-research/       # User personas, journey mapping
+└── web-development/   # CSS architecture, patterns
+```
+
+See [`prompts/README.md`](prompts/README.md) for the full index and prompt format guide.
+
+## 🏥 Pre-Launch Health Check
+
+Before deploying, run the full quality protocol:
+
+```bash
+# 1. Clinical Hygiene — must pass with 0 errors
+npm run lint
+
+# 2. Structural Integrity
+npm run build
+
+# 3. Preview production build
+npm run preview
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- How to add new prompts
+- Brand alignment requirements ("Ivory & Gold" design system)
+- PR checklist and quality standards
+
 ## 📄 License
 
 © 2025 Asper Beauty Shop. All rights reserved.
 
 ---
 
-Built with ❤️ using [Lovable](https://lovable.dev)
+Built with ❤️ using [Lovable](https://lovable.dev) · "Curated by Pharmacists. Powered by Intelligence."
