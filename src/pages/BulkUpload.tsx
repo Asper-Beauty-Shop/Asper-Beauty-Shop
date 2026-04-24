@@ -130,6 +130,9 @@ export default function BulkUpload() {
                 : queueItem.status === "retrying"
                 ? "processing"
                 : queueItem.status as any,
+              status: queueItem.status === "queued" ? "pending" : 
+                     queueItem.status === "retrying" ? "processing" :
+                     queueItem.status as ProcessedProduct["status"],
               imageUrl: queueItem.imageUrl,
               error: queueItem.error,
             };
@@ -192,6 +195,31 @@ export default function BulkUpload() {
         const priceCol = findColumn(headers, COLUMN_MAPPINGS.sellingPrice);
 
         console.log("Mapped columns:", { skuCol, nameCol, costCol, priceCol });
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      
+      // Get the first sheet
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      
+      // Convert to JSON with headers
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet, { 
+        defval: "",
+        raw: false 
+      });
+
+      if (jsonData.length === 0) {
+        throw new Error("No data found in the Excel file");
+      }
+
+      const headers = Object.keys(jsonData[0]);
+      console.log("Found headers:", headers);
+
+      const skuCol = findColumn(headers, COLUMN_MAPPINGS.sku);
+      const nameCol = findColumn(headers, COLUMN_MAPPINGS.name);
+      const costCol = findColumn(headers, COLUMN_MAPPINGS.costPrice);
+      const priceCol = findColumn(headers, COLUMN_MAPPINGS.sellingPrice);
 
         if (!nameCol) {
           throw new Error(
@@ -219,6 +247,10 @@ export default function BulkUpload() {
             };
           })
           .filter((p): p is RawProduct => p !== null && p.name.length > 0);
+      const parsedProducts: RawProduct[] = jsonData
+        .map((row, index) => {
+          const name = String(row[nameCol] || "").trim();
+          if (!name) return null;
 
         if (parsedProducts.length === 0) {
           throw new Error("No valid products found in the file");
@@ -240,6 +272,20 @@ export default function BulkUpload() {
     },
     [],
   );
+
+      setRawData(parsedProducts);
+      setPreviewData(parsedProducts.slice(0, 10));
+      toast.success(`Successfully loaded ${parsedProducts.length} products from ${file.name}`);
+      setStep("categorize");
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error("Parse error:", err);
+      setParseError(err.message || "Failed to parse file");
+      toast.error(`Failed to parse file: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, []);
 
   // Load the bundled Excel file
   const loadBundledFile = useCallback(async () => {
@@ -265,6 +311,11 @@ export default function BulkUpload() {
           raw: false,
         },
       );
+      
+      const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(worksheet, { 
+        defval: "",
+        raw: false 
+      });
 
       if (jsonData.length === 0) {
         throw new Error("No data found in the Excel file");
@@ -312,10 +363,11 @@ export default function BulkUpload() {
       setPreviewData(parsedProducts.slice(0, 10));
       toast.success(`Successfully loaded ${parsedProducts.length} products`);
       setStep("categorize");
-    } catch (error: any) {
-      console.error("Load error:", error);
-      setParseError(error.message || "Failed to load file");
-      toast.error(`Failed to load file: ${error.message}`);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error("Load error:", err);
+      setParseError(err.message || "Failed to load file");
+      toast.error(`Failed to load file: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -371,6 +423,12 @@ export default function BulkUpload() {
       } else if (
         error.message?.includes("403") || error.message?.includes("Forbidden")
       ) {
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error(err);
+      if (err.message?.includes("401") || err.message?.includes("Unauthorized")) {
+        toast.error("Authentication required. Please log in.");
+      } else if (err.message?.includes("403") || err.message?.includes("Forbidden")) {
         toast.error("Admin access required for bulk operations.");
       } else {
         toast.error("Failed to categorize products");
@@ -521,6 +579,13 @@ export default function BulkUpload() {
             error.message?.includes("Unauthorized") ||
             error.message?.includes("Forbidden")
           ) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+        } catch (error: unknown) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          console.error(`Failed to create ${product.name}:`, err);
+          
+          if (err.message?.includes("401") || err.message?.includes("403") || err.message?.includes("Unauthorized") || err.message?.includes("Forbidden")) {
             toast.error("Authorization failed. Please log in as an admin.");
             setIsShopifyUploading(false);
             return;

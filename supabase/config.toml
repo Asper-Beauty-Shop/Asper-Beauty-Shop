@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.bulk-product-upload]
 verify_jwt = false
+
+[functions.tray]
+verify_jwt = false
+
+[functions.capture-lead]
+verify_jwt = false

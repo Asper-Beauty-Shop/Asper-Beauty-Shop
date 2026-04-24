@@ -50,6 +50,8 @@ type QueueEventType =
   | "paused"
   | "resumed";
 type QueueEventCallback = (data: any) => void;
+type QueueEventType = "itemUpdate" | "statsUpdate" | "batchComplete" | "queueComplete" | "error" | "paused" | "resumed";
+type QueueEventCallback = (data: unknown) => void;
 
 class ImageGenerationQueue {
   private queue: Map<string, QueueItem> = new Map();
@@ -81,7 +83,7 @@ class ImageGenerationQueue {
     }
   }
 
-  private emit(event: QueueEventType, data: any) {
+  private emit(event: QueueEventType, data: unknown) {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
       listeners.forEach((callback) => callback(data));
@@ -316,6 +318,11 @@ class ImageGenerationQueue {
       const isRateLimited = err.message?.includes("429") ||
         err.message?.includes("rate");
       return { success: false, error: err.message, rateLimited: isRateLimited };
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error(`Exception processing ${item.name}:`, error);
+      const isRateLimited = error.message?.includes("429") || error.message?.includes("rate");
+      return { success: false, error: error.message, rateLimited: isRateLimited };
     }
   }
 

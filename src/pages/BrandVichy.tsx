@@ -96,6 +96,9 @@ export default function BrandVichy() {
       return range.keywords!.some((keyword) =>
         title.includes(keyword.toLowerCase()) ||
         tags.includes(keyword.toLowerCase())
+      const tags = ((product.node as ShopifyProduct['node'] & { tags?: string }).tags ?? '').toLowerCase();
+      return range.keywords!.some(keyword => 
+        title.includes(keyword.toLowerCase()) || tags.includes(keyword.toLowerCase())
       );
     });
   }, [products, activeRange]);

@@ -5,6 +5,13 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useState, useRef, useEffect } from 'react';
+import { X, Send, Loader2, Heart, Instagram, Facebook, MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { INSTAGRAM_URL, FACEBOOK_URL, TIKTOK_URL, WHATSAPP_NUMBER } from '@/lib/channels';
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -41,16 +48,210 @@ const quickPrompts = {
       message:
         "هل يمكنك مقارنة سيروم فيتامين سي مع سيروم الريتينول لمكافحة الشيخوخة؟",
     },
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://rgehleqcubtmcwyipyvi.supabase.co";
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+const CHAT_URL = `${SUPABASE_URL}/functions/v1/beauty-assistant`;
+const CHANNEL = 'website';
+
+const RoseIcon = ({ className }: { className?: string }) => (
+  <span className={className} role="img" aria-label="rose">🌹</span>
+);
+
+const translations = {
+  en: {
+    name: 'Dr. Rose',
+    title: 'Digital Concierge',
+    welcome: "Welcome to Asper Beauty — The Sanctuary of Science 🌹 I'm Dr. Rose, your personal beauty concierge. I blend clinical expertise with luxury beauty to craft your perfect regimen from our 4,000+ curated products.\n\nLet's begin your 3-Click Solution — what's your primary skin concern today?",
+    placeholder: 'Tell Dr. Rose your skin concern...',
+    buttonText: 'Dr. Rose 🌹',
+    addToCart: 'Yes, add to cart! 🛍️',
+    tellMore: 'Tell me more 🤔',
+    buildRoutine: 'Build my routine ✨',
+    viewBestsellers: 'Show bestsellers 🌟',
+    saveRoutine: 'Save my routine 📱',
+  },
+  ar: {
+    name: 'د. روز',
+    title: 'المستشارة الرقمية',
+    welcome: "أهلاً بك في آسبر بيوتي — ملاذ العلم والجمال 🌹 أنا د. روز، مستشارتك الشخصية للجمال. أجمع الخبرة الطبية مع الجمال الفاخر لأصمم لك روتينك المثالي من أكثر من 4,000 منتج.\n\nيلا نبدأ حلّك بـ3 خطوات — شو مشكلة بشرتك الرئيسية اليوم؟",
+    placeholder: 'خبري د. روز عن مشكلة بشرتك...',
+    buttonText: 'د. روز 🌹',
+    addToCart: 'نعم، أضف للسلة! 🛍️',
+    tellMore: 'احكيلي أكثر 🤔',
+    buildRoutine: 'جهزيلي روتين ✨',
+    viewBestsellers: 'أريني الأكثر مبيعاً 🌟',
+    saveRoutine: 'احفظيلي الروتين 📱',
+  },
+};
+
+const quickPrompts = {
+  en: [
+    { label: '🔴 Acne & Blemishes', message: "I've been struggling with acne and blemishes. It's really affecting my confidence." },
+    { label: '⏳ Anti-Aging', message: "I'm noticing fine lines and wrinkles. I want to start a proper anti-aging regimen." },
+    { label: '💧 Dryness & Hydration', message: "My skin feels very dry and dehydrated. I need deep hydration." },
+    { label: '🌸 Sensitivity & Redness', message: "My skin is very sensitive and gets red easily. Most products irritate me." },
+    { label: '✨ Glass Skin Glow', message: "I want that glass skin glow look! Build me a full routine." },
+    { label: '🎁 Gift Recommendation', message: "I need a beauty gift set for someone special. What do you recommend?" },
+  ],
+  ar: [
+    { label: '🔴 حب الشباب', message: 'عندي مشكلة حب شباب وبثور. مأثرة على ثقتي كثير.' },
+    { label: '⏳ مكافحة التجاعيد', message: 'بديت ألاحظ خطوط وتجاعيد. أبي أبدأ روتين مكافحة شيخوخة.' },
+    { label: '💧 جفاف وترطيب', message: 'بشرتي جافة ومجففة كثير. أحتاج ترطيب عميق.' },
+    { label: '🌸 حساسية واحمرار', message: 'بشرتي حساسة وتحمر بسرعة. أغلب المنتجات تهيجها.' },
+    { label: '✨ بشرة زجاجية', message: 'أبي بشرة زجاجية مشرقة! ابنيلي روتين كامل.' },
+    { label: '🎁 هدية جمالية', message: 'أحتاج مجموعة هدية جمال لشخص مميز. شو تنصحيني؟' },
   ],
 };
 
+function isArabicText(text: string): boolean {
+  const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/;
+  const arabicChars = (text.match(arabicPattern) || []).length;
+  const totalChars = text.replace(/\s/g, '').length;
+  return totalChars > 0 && arabicChars / totalChars > 0.3;
+}
+
+function detectContactInfo(text: string): { type: 'email' | 'phone'; value: string } | null {
+  const emailMatch = text.match(EMAIL_REGEX);
+  if (emailMatch) {
+    return { type: 'email', value: emailMatch[0] };
+  }
+  
+  const phoneMatch = text.replace(/\s/g, '').match(JORDANIAN_PHONE_REGEX);
+  if (phoneMatch) {
+    return { type: 'phone', value: phoneMatch[0] };
+  }
+  
+  return null;
+}
+
+function detectSuggestionTriggers(content: string): string[] {
+  const triggers: string[] = [];
+  const lowerContent = content.toLowerCase();
+  
+  if (
+    lowerContent.includes('add these to your cart') ||
+    lowerContent.includes('add to cart') ||
+    lowerContent.includes('أضيفهم لسلتك') ||
+    lowerContent.includes('بدك أضيفهم') ||
+    lowerContent.includes('shall i prepare your digital tray')
+  ) {
+    triggers.push('cart');
+  }
+  
+  if (
+    lowerContent.includes('tell you more') ||
+    lowerContent.includes('would you like to know more') ||
+    lowerContent.includes('احكيلك أكثر') ||
+    lowerContent.includes('بدك احكيلك')
+  ) {
+    triggers.push('info');
+  }
+  
+  if (
+    lowerContent.includes('build your complete routine') ||
+    lowerContent.includes('shall i build') ||
+    lowerContent.includes('أجهزلك روتين') ||
+    lowerContent.includes('بدك أجهزلك')
+  ) {
+    triggers.push('routine');
+  }
+  
+  if (
+    lowerContent.includes('best sellers') ||
+    lowerContent.includes('bestsellers') ||
+    lowerContent.includes('الأكثر مبيعاً')
+  ) {
+    triggers.push('bestsellers');
+  }
+  
+  // Lead capture triggers - when Dr. Rose offers to save routine
+  if (
+    lowerContent.includes('save this digital tray') ||
+    lowerContent.includes('send it to your whatsapp') ||
+    lowerContent.includes('send it to your email') ||
+    lowerContent.includes('أحفظلك') ||
+    lowerContent.includes('أبعتلك الروابط') ||
+    lowerContent.includes('اكتبيلي رقمك') ||
+    lowerContent.includes('type your number')
+  ) {
+    triggers.push('saveRoutine');
+  }
+  
+  return triggers;
+}
+
+interface SuggestionChipsProps {
+  triggers: string[];
+  onSelect: (message: string) => void;
+  isArabic: boolean;
+  t: typeof translations['en'];
+}
+
+function SuggestionChips({ triggers, onSelect, isArabic, t }: SuggestionChipsProps) {
+  if (triggers.length === 0) return null;
+  
+  const chipConfig: Record<string, { label: string; message: string; icon: React.ReactNode }> = {
+    cart: {
+      label: t.addToCart,
+      message: isArabic ? 'نعم، أضيفيهم لسلتي!' : 'Yes, please add them to my cart!',
+      icon: <ShoppingBag className="w-3.5 h-3.5" />,
+    },
+    info: {
+      label: t.tellMore,
+      message: isArabic ? 'احكيلي أكثر عنه' : 'Tell me more about it',
+      icon: <MessageCircle className="w-3.5 h-3.5" />,
+    },
+    routine: {
+      label: t.buildRoutine,
+      message: isArabic ? 'نعم، جهزيلي روتين كامل!' : 'Yes, build my complete routine!',
+      icon: <span>✨</span>,
+    },
+    bestsellers: {
+      label: t.viewBestsellers,
+      message: isArabic ? 'أريني الأكثر مبيعاً' : 'Show me the bestsellers',
+      icon: <span>🌟</span>,
+    },
+    saveRoutine: {
+      label: t.saveRoutine,
+      message: isArabic ? 'نعم، احفظيلي الروتين!' : 'Yes, please save my routine!',
+      icon: <span>📱</span>,
+    },
+  };
+  
+  return (
+    <div className={`flex flex-wrap gap-2 mt-3 ${isArabic ? 'justify-end' : 'justify-start'}`}>
+      {triggers.map((trigger) => {
+        const config = chipConfig[trigger];
+        if (!config) return null;
+        return (
+          <button
+            key={trigger}
+            onClick={() => onSelect(config.message)}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-body bg-gradient-to-r from-burgundy to-pink-700 text-white rounded-full hover:opacity-90 transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105"
+          >
+            {config.icon}
+            <span>{config.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export const BeautyAssistant = () => {
   const { language, isRTL } = useLanguage();
+  const isArabic = language === 'ar';
+  const t = translations[language];
+  const prompts = quickPrompts[language];
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Track captured leads to avoid duplicate captures
+  const capturedContactsRef = useRef<Set<string>>(new Set());
 
   const translations = {
     en: {
@@ -70,9 +271,45 @@ export const BeautyAssistant = () => {
       buttonText: "اسأل الصيدلي",
     },
   };
+  const lastMessageTriggers = useMemo(() => {
+    const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
+    if (!lastAssistantMsg || messages[messages.length - 1]?.role === 'user') return [];
+    return detectSuggestionTriggers(lastAssistantMsg.content);
+  }, [messages]);
 
-  const t = translations[language];
-  const prompts = quickPrompts[language];
+  // Silent lead capture function - runs in background without interrupting chat
+  const captureLead = useCallback(async (contactInfo: { type: 'email' | 'phone'; value: string }, chatHistory: Message[]) => {
+    // Don't capture if already captured this contact
+    if (capturedContactsRef.current.has(contactInfo.value)) {
+      return;
+    }
+    
+    try {
+      capturedContactsRef.current.add(contactInfo.value);
+      
+      const response = await fetch(LEAD_CAPTURE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+        },
+        body: JSON.stringify({
+          contact_type: contactInfo.type,
+          contact_value: contactInfo.value,
+          chat_history: chatHistory.map(m => ({ role: m.role, content: m.content })),
+          source: 'dr_rose_chat',
+        }),
+      });
+      
+      if (response.ok) {
+        console.log(`Lead captured silently: ${contactInfo.type}`);
+      }
+    } catch (error) {
+      // Silent failure - don't interrupt user experience
+      console.error('Silent lead capture failed:', error);
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -98,8 +335,11 @@ export const BeautyAssistant = () => {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
       },
-      body: JSON.stringify({ messages: userMessages }),
+      body: JSON.stringify({ messages: userMessages, channel: CHANNEL }),
     });
 
     if (!resp.ok || !resp.body) {
@@ -107,6 +347,8 @@ export const BeautyAssistant = () => {
         throw new Error("Please sign in to use the beauty assistant");
       }
       throw new Error("Failed to start stream");
+      const errorData = await resp.json().catch(() => ({}));
+      throw new Error((errorData as Record<string, string>).error || 'Failed to connect');
     }
 
     const reader = resp.body.getReader();
@@ -146,6 +388,9 @@ export const BeautyAssistant = () => {
                   i === prev.length - 1
                     ? { ...m, content: assistantContent }
                     : m
+              if (last?.role === 'assistant' && prev.length > 1) {
+                return prev.map((m, i) =>
+                  i === prev.length - 1 ? { ...m, content: assistantContent } : m
                 );
               }
               return [...prev, {
@@ -162,14 +407,23 @@ export const BeautyAssistant = () => {
     }
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || isLoading) return;
 
     const userMsg: Message = { role: "user", content: input.trim() };
+    // Check for contact info BEFORE sending - capture lead silently
+    const contactInfo = detectContactInfo(text);
+    
+    const userMsg: Message = { role: 'user', content: text.trim() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
     setIsLoading(true);
+
+    // If contact info detected, capture lead in background
+    if (contactInfo) {
+      captureLead(contactInfo, newMessages);
+    }
 
     try {
       await streamChat(newMessages.filter((m) => m.content !== t.welcome));
@@ -180,6 +434,12 @@ export const BeautyAssistant = () => {
         content: language === "ar"
           ? "عذراً، حدث خطأ. يرجى المحاولة مرة أخرى."
           : "Sorry, something went wrong. Please try again.",
+      console.error('Chat error:', error);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: isArabic
+          ? 'عذراً، حدث خطأ. يرجى المحاولة مرة أخرى 🌹'
+          : 'Sorry, something went wrong. Please try again 🌹',
       }]);
     } finally {
       setIsLoading(false);
@@ -213,7 +473,7 @@ export const BeautyAssistant = () => {
 
   return (
     <>
-      {/* Floating Pill Button */}
+      {/* Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
         className={`fixed bottom-6 ${
@@ -222,11 +482,13 @@ export const BeautyAssistant = () => {
           isOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
         }`}
         aria-label="Open beauty assistant"
+        className={`fixed bottom-20 lg:bottom-6 ${isRTL ? 'left-4 lg:left-6' : 'right-4 lg:right-6'} z-50 flex items-center gap-2.5 px-5 py-3 bg-white border-2 border-gold rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 group ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
+        aria-label="Talk to Dr. Rose"
       >
-        <div className="w-8 h-8 rounded-full bg-burgundy flex items-center justify-center">
-          <Stethoscope className="w-4 h-4 text-gold" />
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-burgundy to-pink-700 flex items-center justify-center">
+          <RoseIcon className="text-lg" />
         </div>
-        <span className="font-body text-sm font-medium text-burgundy whitespace-nowrap">
+        <span className="font-body text-sm font-semibold text-burgundy whitespace-nowrap">
           {t.buttonText}
         </span>
       </button>
@@ -239,33 +501,40 @@ export const BeautyAssistant = () => {
           isOpen
             ? "scale-100 opacity-100"
             : "scale-95 opacity-0 pointer-events-none"
+        className={`fixed bottom-20 lg:bottom-6 ${isRTL ? 'left-4 lg:left-6' : 'right-4 lg:right-6'} z-50 w-[400px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-gold/30 overflow-hidden transition-all duration-400 ${
+          isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'
         }`}
       >
-        {/* Header - Deep Burgundy */}
-        <div className="bg-burgundy p-4 flex items-center justify-between">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-burgundy to-pink-800 p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gold/20 flex items-center justify-center">
-              <Stethoscope className="w-5 h-5 text-gold" />
+            <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center text-xl">
+              🌹
             </div>
             <div>
               <h3 className="font-display text-base font-semibold text-white">
                 {t.title}
               </h3>
               <p className="text-xs text-gold/90 font-body">{t.subtitle}</p>
+              <h3 className="font-display text-base font-semibold text-white">{t.name}</h3>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <p className="text-xs text-white/80 font-body">{t.title}</p>
+              </div>
             </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsOpen(false)}
-            className="text-gold hover:bg-gold/20"
+            className="text-white/80 hover:text-white hover:bg-white/20"
           >
             <X className="w-5 h-5" />
           </Button>
         </div>
 
         {/* Messages */}
-        <ScrollArea className="h-[320px] p-4 bg-cream/30" ref={scrollRef}>
+        <ScrollArea className="h-[300px] p-4 bg-cream/30" ref={scrollRef}>
           <div className="space-y-4">
             {messages.map((msg, idx) => (
               <div
@@ -288,9 +557,61 @@ export const BeautyAssistant = () => {
               </div>
             ))}
             {isLoading && messages[messages.length - 1]?.role === "user" && (
+            {messages.map((msg, idx) => {
+              const isAssistant = msg.role === 'assistant';
+              const msgIsArabic = isArabicText(msg.content);
+              const isLastAssistant = isAssistant && idx === messages.length - 1;
+              
+              return (
+                <div key={idx}>
+                  <div
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    dir={msgIsArabic ? 'rtl' : 'ltr'}
+                  >
+                    {isAssistant && (
+                      <div className={`w-7 h-7 rounded-full bg-gradient-to-br from-burgundy to-pink-700 flex items-center justify-center text-xs shrink-0 ${msgIsArabic ? 'ml-2' : 'mr-2'} mt-1`}>
+                        🌹
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                        msg.role === 'user'
+                          ? `bg-burgundy text-white ${msgIsArabic ? 'rounded-bl-sm' : 'rounded-br-sm'}`
+                          : `bg-white border border-gold/20 text-foreground ${msgIsArabic ? 'rounded-br-sm' : 'rounded-bl-sm'} shadow-sm`
+                      }`}
+                    >
+                      <p 
+                        className={`text-sm leading-relaxed whitespace-pre-wrap font-body ${msgIsArabic ? 'text-right' : 'text-left'}`}
+                        dir={msgIsArabic ? 'rtl' : 'ltr'}
+                      >
+                        {msg.content}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Smart Suggestion Chips - only show for the last assistant message */}
+                  {isLastAssistant && !isLoading && lastMessageTriggers.length > 0 && (
+                    <SuggestionChips
+                      triggers={lastMessageTriggers}
+                      onSelect={sendMessage}
+                      isArabic={msgIsArabic}
+                      t={t}
+                    />
+                  )}
+                </div>
+              );
+            })}
+            {isLoading && messages[messages.length - 1]?.role === 'user' && (
               <div className="flex justify-start">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-burgundy to-pink-700 flex items-center justify-center text-xs shrink-0 mr-2 mt-1">
+                  🌹
+                </div>
                 <div className="bg-white border border-gold/20 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-                  <Loader2 className="w-5 h-5 animate-spin text-gold" />
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-gold rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 bg-gold rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 bg-gold rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
                 </div>
               </div>
             )}
@@ -304,9 +625,9 @@ export const BeautyAssistant = () => {
               {prompts.map((prompt, idx) => (
                 <button
                   key={idx}
-                  onClick={() => handleQuickPrompt(prompt.message)}
+                  onClick={() => sendMessage(prompt.message)}
                   disabled={isLoading}
-                  className="px-3 py-1.5 text-xs font-body bg-white border border-gold/30 rounded-full text-burgundy hover:bg-gold hover:text-burgundy hover:border-gold transition-all duration-300 disabled:opacity-50"
+                  className="px-3 py-1.5 text-xs font-body bg-white border border-gold/30 rounded-full text-burgundy hover:bg-burgundy hover:text-white hover:border-burgundy transition-all duration-300 disabled:opacity-50"
                 >
                   {prompt.label}
                 </button>
@@ -316,12 +637,9 @@ export const BeautyAssistant = () => {
         )}
 
         {/* Input */}
-        <div className="p-4 border-t border-gold/20 bg-white">
+        <div className="p-3 border-t border-gold/20 bg-white">
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSend();
-            }}
+            onSubmit={(e) => { e.preventDefault(); sendMessage(input); }}
             className="flex gap-2"
           >
             <Input
@@ -336,11 +654,28 @@ export const BeautyAssistant = () => {
               type="submit"
               size="icon"
               disabled={!input.trim() || isLoading}
-              className="rounded-full bg-burgundy hover:bg-burgundy-light shrink-0"
+              className="rounded-full bg-gradient-to-r from-burgundy to-pink-700 hover:opacity-90 shrink-0"
             >
-              <Send className="w-4 h-4 text-gold" />
+              <Send className="w-4 h-4 text-white" />
             </Button>
           </form>
+          <div className="mt-2 flex items-center justify-center gap-2">
+            <p className="text-[10px] text-muted-foreground font-body flex items-center gap-1">
+              <Heart className="w-3 h-3 text-pink-400" />
+              {isArabic ? 'تجدني أيضاً على' : 'Also find me on'}
+            </p>
+            <div className="flex items-center gap-1.5">
+              <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer" className="w-5 h-5 rounded-full bg-[#25D366] flex items-center justify-center hover:scale-110 transition-transform" aria-label="WhatsApp">
+                <MessageCircle className="w-3 h-3 text-white" />
+              </a>
+              <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" className="w-5 h-5 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 flex items-center justify-center hover:scale-110 transition-transform" aria-label="Instagram">
+                <Instagram className="w-3 h-3 text-white" />
+              </a>
+              <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="w-5 h-5 rounded-full bg-[#1877F2] flex items-center justify-center hover:scale-110 transition-transform" aria-label="Facebook">
+                <Facebook className="w-3 h-3 text-white" />
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </>

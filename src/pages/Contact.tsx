@@ -126,6 +126,10 @@ export default function Contact() {
                       rel="noopener noreferrer"
                       className="w-10 h-10 rounded-full border border-gold/30 flex items-center justify-center text-gold hover:bg-gold hover:text-burgundy transition-all duration-300"
                     >
+                    <a href="https://www.instagram.com/asper.beauty.shop/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-gold/30 flex items-center justify-center text-gold hover:bg-gold hover:text-burgundy transition-all duration-300">
+                      <Instagram className="w-4 h-4" strokeWidth={1.5} />
+                    </a>
+                    <a href="https://www.facebook.com/robu.sweileh" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-gold/30 flex items-center justify-center text-gold hover:bg-gold hover:text-burgundy transition-all duration-300">
                       <Facebook className="w-4 h-4" strokeWidth={1.5} />
                     </a>
                     <a
@@ -142,6 +146,7 @@ export default function Contact() {
                       rel="noopener noreferrer"
                       className="w-10 h-10 rounded-full border border-gold/30 flex items-center justify-center text-gold hover:bg-gold hover:text-burgundy transition-all duration-300"
                     >
+                    <a href="https://www.tiktok.com/@asper.beauty.shop" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-gold/30 flex items-center justify-center text-gold hover:bg-gold hover:text-burgundy transition-all duration-300">
                       <TikTokIcon className="w-4 h-4" />
                     </a>
                   </div>

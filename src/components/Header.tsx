@@ -241,6 +241,9 @@ export const Header = () => {
               <a
                 href="https://www.instagram.com/asper.beauty.box/"
                 target="_blank"
+              <a 
+                href="https://www.instagram.com/asper.beauty.shop/" 
+                target="_blank" 
                 rel="noopener noreferrer"
                 className="p-1.5 text-gold hover:text-gold-light transition-colors duration-400"
               >
@@ -249,6 +252,9 @@ export const Header = () => {
               <a
                 href="https://web.facebook.com/robu.sweileh/"
                 target="_blank"
+              <a 
+                href="https://www.facebook.com/robu.sweileh" 
+                target="_blank" 
                 rel="noopener noreferrer"
                 className="p-1.5 text-gold hover:text-gold-light transition-colors duration-400"
               >
