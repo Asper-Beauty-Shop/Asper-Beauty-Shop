@@ -1,3 +1,10 @@
+import React, { useEffect, useRef, useState } from "react";
+import { Loader2, Send, Stethoscope, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef, useEffect } from 'react';
 import { X, Send, Loader2, Heart, Instagram, Facebook, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,8 +13,41 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { INSTAGRAM_URL, FACEBOOK_URL, TIKTOK_URL, WHATSAPP_NUMBER } from '@/lib/channels';
 
-type Message = { role: 'user' | 'assistant'; content: string };
+type Message = { role: "user" | "assistant"; content: string };
 
+const CHAT_URL =
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/beauty-assistant`;
+
+const quickPrompts = {
+  en: [
+    {
+      label: "Routine for Acne",
+      message: "What is the best skincare routine for acne-prone skin?",
+    },
+    {
+      label: "Safe for Pregnancy?",
+      message: "Which skincare ingredients are safe to use during pregnancy?",
+    },
+    {
+      label: "Compare Serums",
+      message:
+        "Can you compare vitamin C serums vs retinol serums for anti-aging?",
+    },
+  ],
+  ar: [
+    {
+      label: "روتين حب الشباب",
+      message: "ما هو أفضل روتين للعناية بالبشرة المعرضة لحب الشباب؟",
+    },
+    {
+      label: "آمن للحمل؟",
+      message: "ما هي مكونات العناية بالبشرة الآمنة للاستخدام أثناء الحمل؟",
+    },
+    {
+      label: "مقارنة السيروم",
+      message:
+        "هل يمكنك مقارنة سيروم فيتامين سي مع سيروم الريتينول لمكافحة الشيخوخة؟",
+    },
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://rgehleqcubtmcwyipyvi.supabase.co";
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 const CHAT_URL = `${SUPABASE_URL}/functions/v1/beauty-assistant`;
@@ -206,13 +246,31 @@ export const BeautyAssistant = () => {
 
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   
   // Track captured leads to avoid duplicate captures
   const capturedContactsRef = useRef<Set<string>>(new Set());
 
+  const translations = {
+    en: {
+      title: "Asper Digital Consult",
+      subtitle: "Clinical Skincare Expert",
+      placeholder: "Describe your skin concern...",
+      welcome:
+        "Hello. I am trained on clinical skincare data. Tell me your skin concern (e.g., Acne, Dryness) or ask about a specific ingredient.",
+      buttonText: "Ask the Pharmacist",
+    },
+    ar: {
+      title: "استشارة آسبر الرقمية",
+      subtitle: "خبير العناية بالبشرة السريرية",
+      placeholder: "صف مشكلة بشرتك...",
+      welcome:
+        "مرحباً. أنا مدرب على بيانات العناية بالبشرة السريرية. أخبرني عن مشكلة بشرتك (مثل حب الشباب، الجفاف) أو اسأل عن مكون معين.",
+      buttonText: "اسأل الصيدلي",
+    },
+  };
   const lastMessageTriggers = useMemo(() => {
     const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
     if (!lastAssistantMsg || messages[messages.length - 1]?.role === 'user') return [];
@@ -255,7 +313,7 @@ export const BeautyAssistant = () => {
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      setMessages([{ role: 'assistant', content: t.welcome }]);
+      setMessages([{ role: "assistant", content: t.welcome }]);
     }
   }, [isOpen, messages.length, t.welcome]);
 
@@ -266,9 +324,17 @@ export const BeautyAssistant = () => {
   }, [messages]);
 
   const streamChat = async (userMessages: Message[]) => {
+    // Get the current session token for authenticated requests
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error("Please sign in to use the beauty assistant");
+    }
+
     const resp = await fetch(CHAT_URL, {
-      method: 'POST',
+      method: "POST",
       headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
         'Content-Type': 'application/json',
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -277,14 +343,18 @@ export const BeautyAssistant = () => {
     });
 
     if (!resp.ok || !resp.body) {
+      if (resp.status === 401) {
+        throw new Error("Please sign in to use the beauty assistant");
+      }
+      throw new Error("Failed to start stream");
       const errorData = await resp.json().catch(() => ({}));
       throw new Error((errorData as Record<string, string>).error || 'Failed to connect');
     }
 
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
-    let textBuffer = '';
-    let assistantContent = '';
+    let textBuffer = "";
+    let assistantContent = "";
 
     while (true) {
       const { done, value } = await reader.read();
@@ -293,34 +363,44 @@ export const BeautyAssistant = () => {
       textBuffer += decoder.decode(value, { stream: true });
 
       let newlineIndex: number;
-      while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
         let line = textBuffer.slice(0, newlineIndex);
         textBuffer = textBuffer.slice(newlineIndex + 1);
 
-        if (line.endsWith('\r')) line = line.slice(0, -1);
-        if (line.startsWith(':') || line.trim() === '') continue;
-        if (!line.startsWith('data: ')) continue;
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
 
         const jsonStr = line.slice(6).trim();
-        if (jsonStr === '[DONE]') break;
+        if (jsonStr === "[DONE]") break;
 
         try {
           const parsed = JSON.parse(jsonStr);
-          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          const content = parsed.choices?.[0]?.delta?.content as
+            | string
+            | undefined;
           if (content) {
             assistantContent += content;
-            setMessages(prev => {
+            setMessages((prev) => {
               const last = prev[prev.length - 1];
+              if (last?.role === "assistant" && prev.length > 1) {
+                return prev.map((m, i) =>
+                  i === prev.length - 1
+                    ? { ...m, content: assistantContent }
+                    : m
               if (last?.role === 'assistant' && prev.length > 1) {
                 return prev.map((m, i) =>
                   i === prev.length - 1 ? { ...m, content: assistantContent } : m
                 );
               }
-              return [...prev, { role: 'assistant', content: assistantContent }];
+              return [...prev, {
+                role: "assistant",
+                content: assistantContent,
+              }];
             });
           }
         } catch {
-          textBuffer = line + '\n' + textBuffer;
+          textBuffer = line + "\n" + textBuffer;
           break;
         }
       }
@@ -330,13 +410,14 @@ export const BeautyAssistant = () => {
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
 
+    const userMsg: Message = { role: "user", content: input.trim() };
     // Check for contact info BEFORE sending - capture lead silently
     const contactInfo = detectContactInfo(text);
     
     const userMsg: Message = { role: 'user', content: text.trim() };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
-    setInput('');
+    setInput("");
     setIsLoading(true);
 
     // If contact info detected, capture lead in background
@@ -345,8 +426,14 @@ export const BeautyAssistant = () => {
     }
 
     try {
-      await streamChat(newMessages.filter(m => m.content !== t.welcome));
+      await streamChat(newMessages.filter((m) => m.content !== t.welcome));
     } catch (error) {
+      console.error("Chat error:", error);
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: language === "ar"
+          ? "عذراً، حدث خطأ. يرجى المحاولة مرة أخرى."
+          : "Sorry, something went wrong. Please try again.",
       console.error('Chat error:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -359,11 +446,42 @@ export const BeautyAssistant = () => {
     }
   };
 
+  const handleQuickPrompt = (message: string) => {
+    if (isLoading) return;
+    setInput(message);
+    // Auto-send after setting
+    const userMsg: Message = { role: "user", content: message };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setIsLoading(true);
+
+    streamChat(newMessages.filter((m) => m.content !== t.welcome))
+      .catch((error) => {
+        console.error("Chat error:", error);
+        setMessages((prev) => [...prev, {
+          role: "assistant",
+          content: language === "ar"
+            ? "عذراً، حدث خطأ. يرجى المحاولة مرة أخرى."
+            : "Sorry, something went wrong. Please try again.",
+        }]);
+      })
+      .finally(() => {
+        setIsLoading(false);
+        setInput("");
+      });
+  };
+
   return (
     <>
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
+        className={`fixed bottom-6 ${
+          isRTL ? "left-6" : "right-6"
+        } z-50 flex items-center gap-3 px-5 py-3 bg-white border-2 border-gold rounded-full shadow-lg hover:shadow-xl transition-all duration-400 group ${
+          isOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
+        }`}
+        aria-label="Open beauty assistant"
         className={`fixed bottom-20 lg:bottom-6 ${isRTL ? 'left-4 lg:left-6' : 'right-4 lg:right-6'} z-50 flex items-center gap-2.5 px-5 py-3 bg-white border-2 border-gold rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 group ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
         aria-label="Talk to Dr. Rose"
       >
@@ -377,6 +495,12 @@ export const BeautyAssistant = () => {
 
       {/* Chat Window */}
       <div
+        className={`fixed bottom-6 ${
+          isRTL ? "left-6" : "right-6"
+        } z-50 w-[400px] max-w-[calc(100vw-3rem)] bg-white rounded-2xl shadow-2xl border border-gold/30 overflow-hidden transition-all duration-400 ${
+          isOpen
+            ? "scale-100 opacity-100"
+            : "scale-95 opacity-0 pointer-events-none"
         className={`fixed bottom-20 lg:bottom-6 ${isRTL ? 'left-4 lg:left-6' : 'right-4 lg:right-6'} z-50 w-[400px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-gold/30 overflow-hidden transition-all duration-400 ${
           isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'
         }`}
@@ -388,6 +512,10 @@ export const BeautyAssistant = () => {
               🌹
             </div>
             <div>
+              <h3 className="font-display text-base font-semibold text-white">
+                {t.title}
+              </h3>
+              <p className="text-xs text-gold/90 font-body">{t.subtitle}</p>
               <h3 className="font-display text-base font-semibold text-white">{t.name}</h3>
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -408,6 +536,27 @@ export const BeautyAssistant = () => {
         {/* Messages */}
         <ScrollArea className="h-[300px] p-4 bg-cream/30" ref={scrollRef}>
           <div className="space-y-4">
+            {messages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`flex ${
+                  msg.role === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                <div
+                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
+                    msg.role === "user"
+                      ? "bg-burgundy text-white rounded-br-sm"
+                      : "bg-white border border-gold/20 text-foreground rounded-bl-sm shadow-sm"
+                  }`}
+                >
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap font-body">
+                    {msg.content}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {isLoading && messages[messages.length - 1]?.role === "user" && (
             {messages.map((msg, idx) => {
               const isAssistant = msg.role === 'assistant';
               const msgIsArabic = isArabicText(msg.content);
@@ -499,7 +648,7 @@ export const BeautyAssistant = () => {
               placeholder={t.placeholder}
               className="flex-1 rounded-full bg-cream/50 border-gold/30 focus-visible:ring-gold font-body text-sm"
               disabled={isLoading}
-              dir={isRTL ? 'rtl' : 'ltr'}
+              dir={isRTL ? "rtl" : "ltr"}
             />
             <Button
               type="submit"

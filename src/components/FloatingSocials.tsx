@@ -1,3 +1,4 @@
+import { Facebook, Instagram, MessageCircle } from "lucide-react";
 import { Instagram, Facebook, MessageCircle } from "lucide-react";
 import { INSTAGRAM_URL, FACEBOOK_URL, TIKTOK_URL, WHATSAPP_NUMBER } from "@/lib/channels";
 
@@ -5,6 +6,9 @@ const socialLinks = [
   {
     name: "Instagram",
     icon: Instagram,
+    url: "https://www.instagram.com/asper.beauty.shop/",
+    color:
+      "hover:bg-gradient-to-br hover:from-purple-500 hover:via-pink-500 hover:to-orange-400",
     url: INSTAGRAM_URL,
     color: "hover:bg-gradient-to-br hover:from-purple-500 hover:via-pink-500 hover:to-orange-400",
   },
